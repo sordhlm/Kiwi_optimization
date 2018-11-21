@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: too-many-ancestors
 
 from datetime import datetime
 

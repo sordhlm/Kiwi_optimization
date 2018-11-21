@@ -37,7 +37,7 @@ DATABASES = {
 
 # Administrators error report email settings
 ADMINS = [
-    # ('Your Name', 'your_email@example.com'),
+    ('lhuang', 'lhuang@cnexlabs.com'),
 ]
 
 
@@ -88,6 +88,10 @@ MENU_ITEMS = [
         (_('Search Test Plans'), reverse_lazy('plans-search')),
         (_('Search Test Runs'), reverse_lazy('testruns-search')),
         (_('Search Test Cases'), reverse_lazy('testcases-search')),
+    ]),
+    (_('VIEW'), [
+        (_('View Test Cases'), reverse_lazy('testcases-view')),
+        (_('View Test Plans'), reverse_lazy('plans-search')),
     ]),
     (_('REPORTING'), [
         (_('Overall report'), reverse_lazy('report-overall')),

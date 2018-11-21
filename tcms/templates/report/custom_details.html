@@ -10,11 +10,6 @@
 
 {% block custom_javascript %}
 <script type="text/javascript" src="{% static 'js/report.js' %}"></script>
-
-<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
-<script src="{% static 'js/jsonrpc.js' %}"></script>
-<script src="{% static 'js/utils.js' %}"></script>
-
 <script type="text/javascript">
 Nitrate.Utils.after_page_load(Nitrate.Report.CustomDetails.on_load);
 </script>
@@ -25,8 +20,7 @@ Nitrate.Utils.after_page_load(Nitrate.Report.CustomDetails.on_load);
 	<div class="report_title_bg">
 		<form action="{% url "report-custom-details" %}">
 			{{ form.product.label }}: {{ form.product }}<br />
-			{{ form.version.label }}: {{ form.version }}<br />
-			{{ form.build.label }}: {{ form.build }}<br />
+			{{ form.pk__in.label }}: {{ form.pk__in }}<br />
 			<input type="submit" value="Submit" />
 		</form>
 		{% if report_errors %}

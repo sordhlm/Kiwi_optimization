@@ -3,16 +3,11 @@
 {% block subtitle %}CaseRun Report{% endblock %}
 
 {% block custom_javascript %}
-<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
-
-<script src="{% static 'js/jsonrpc.js' %}"></script>
-<script src="{% static 'js/utils.js' %}"></script>
-
-<script type="text/javascript" src="{% static 'js/report.js' %}"></script>
-
-<script type="text/javascript">
-Nitrate.Utils.after_page_load(Nitrate.Report.TestingReport.on_load);
-</script>
+<script type="text/javascript" src="{% static 'js/advance_search.js' %}"></script>
+<script type="text/javascript" src="{% url 'javascript-catalog' %}"></script>
+<script type="text/javascript" src="{% static 'admin/js/core.js' %}"></script>
+<script type="text/javascript" src="{% static 'admin/js/calendar.js' %}"></script>
+<script type="text/javascript" src="{% static 'admin/js/admin/DateTimeShortcuts.js' %}"></script>
 {% endblock %}
 
 {% block contents %}
@@ -22,29 +17,29 @@ Nitrate.Utils.after_page_load(Nitrate.Report.TestingReport.on_load);
 		<div class="leftlistinfo">
 			<div class="listinfo">
 				<div class="title"><label for="id_name">Product&nbsp;:</label></div>
-				<div class="listinfo_input">{{ run_form.product }}</div>
+				<div class="listinfo_input">{{ run_form.r_product }}</div>
 			</div>
 			<div class="listinfo">
-				<div class="title"><label for="build">Build&nbsp;:</label></div>
-				<div class="listinfo_input">{{ run_form.build }}</div>
+				<div class="title"><label for="r_build">Build&nbsp;:</label></div>
+				<div class="listinfo_input">{{ run_form.r_build }}</div>
 			</div>
 			<div class="listinfo">
 				<div class="title"><label for="id_name">Execute Date&nbsp;:</label></div>
 				<div class="listinfo_input">
-					{{ run_form.created_since }}
+					{{ run_form.r_created_since }}
 				</div>
 			</div>
 			<div class="listinfo">
 				<div class="title"></div>
 				<div class="listinfo_input">
-					{{ run_form.created_before }}
+					{{ run_form.r_created_before }}
 				</div>
 			</div>
 		</div>
 		<div class="rightlistinfo">
 			<div class="listinfo">
-				<div class="title"><label for="version">Version&nbsp;:</label></div>
-				<div class="listinfo_input">{{ run_form.version }}</div>
+				<div class="title"><label for="r_version">Version&nbsp;:</label></div>
+				<div class="listinfo_input">{{ run_form.r_version }}</div>
 			</div>
 		</div>
 		<div class="clear"></div>

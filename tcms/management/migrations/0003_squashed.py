@@ -22,6 +22,13 @@ def reverse_remove_initial_data(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+
+    replaces = [
+        ('management', '0001_squashed'),
+        ('management', '0002_squashed'),
+        ('management', '0013_remove_env')
+    ]
+
     initial = True
 
     dependencies = [

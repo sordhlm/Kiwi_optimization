@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('testruns', '0004_squashed'),
+        ('testruns', '0001_initial'),
     ]
 
     operations = [

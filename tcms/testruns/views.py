@@ -64,11 +64,18 @@ def new(request):
     test_cases = get_selected_testcases(request)
     test_plan = TestPlan.objects.get(plan_id=plan_id)
 
-    # note: ordered by case_id for test_show_create_new_run_page()
     tcs_values = test_cases.select_related('author',
                                            'case_status',
                                            'category',
-                                           'priority').order_by('case_id')
+                                           'priority')
+    # note: ordered by case_id for test_show_create_new_run_page()
+    tcs_values = tcs_values.only('case_id',
+                                 'summary',
+                                 'author__email',
+                                 'create_date',
+                                 'category__name',
+                                 'priority__value',
+                                 'case_status__name').order_by('case_id')
 
     if request.POST.get('POSTING_TO_CREATE'):
         form = NewRunForm(request.POST)
@@ -317,6 +324,12 @@ def edit(request, run_id):
     return render(request, 'testruns/mutable.html', context_data)
 
 
+@permission_required('testruns.change_testcaserun')
+def execute(request, run_id, template_name='run/execute.html'):
+    """Execute test run"""
+    return get(request, run_id, template_name)
+
+
 class TestRunReportView(TemplateView, TestCaseRunDataMixin):
     """Test Run report"""
 
@@ -337,7 +350,8 @@ class TestRunReportView(TemplateView, TestCaseRunDataMixin):
         4. Statistics
         5. bugs
         """
-        run = TestRun.objects.select_related('manager', 'plan').get(pk=self.run_id)
+        run = TestRun.objects.select_related('manager', 'plan').get(
+            pk=self.run_id)
 
         case_runs = TestCaseRun.objects.filter(
             run=run
@@ -388,10 +402,11 @@ class TestRunReportView(TemplateView, TestCaseRunDataMixin):
         comments = self.get_case_runs_comments(run.pk)
 
         for case_run in case_runs:
-            case_run.bugs = case_run_bugs.get(case_run.pk, ())
+            bugs = case_run_bugs.get(case_run.pk, ())
+            case_run.bugs = bugs
             case_run.user_comments = comments.get(case_run.pk, [])
 
-        context = super().get_context_data(**kwargs)
+        context = super(TestRunReportView, self).get_context_data(**kwargs)
         context.update({
             'test_run': run,
             'test_case_runs': case_runs,

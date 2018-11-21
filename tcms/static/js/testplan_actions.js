@@ -255,17 +255,8 @@ Nitrate.TestPlans.TreeView = {
   },
 };
 
-function configure_product_on_load() {
-    $('#id_product').change(function() {
-        $('#id_product_version').find('option').remove();
-        update_version_select_from_product($(this), '#id_product_version')
-    });
-}
-
 Nitrate.TestPlans.Create.on_load = function() {
-    configure_product_on_load();
-    update_version_select_from_product($('#id_product'), '#id_product_version')
-
+  bind_version_selector_to_product(false);
 
   jQ('#add_id_product').bind('click', function() {
     return popupAddAnotherWindow(this);
@@ -276,10 +267,15 @@ Nitrate.TestPlans.Create.on_load = function() {
   jQ('.js-cancel-button').bind('click', function() {
     window.history.back();
   });
+
+  // Populate product version field.
+  if (jQ('#id_product').length && !jQ('#id_product_version').val()) {
+    fireEvent(jQ('#id_product')[0],'change');
+  }
 };
 
 Nitrate.TestPlans.Edit.on_load = function() {
-    configure_product_on_load();
+  bind_version_selector_to_product(false);
 }
 
 Nitrate.TestPlans.Details = {
@@ -588,20 +584,12 @@ Nitrate.TestPlans.Details = {
 };
 
 Nitrate.TestPlans.SearchCase.on_load = function() {
-    $('#id_product').change(update_category_select_from_product);
-    if (!$('#id_category').val().length) {
-        update_category_select_from_product();
+  if (jQ('#id_product').length) {
+    if (jQ('#id_product').val() != "") {
+      bind_category_selector_to_product(true, true, jQ('#id_product')[0], jQ('#id_category')[0]);
+      bind_component_selector_to_product(true, true, jQ('#id_product')[0], jQ('#id_component')[0]);
     }
-
-//fixme: for some reason when we clear Product categories are cleared
-// but components are not. as if the on-change event doesn't execute!
-// if we change to another Product both components and categories are
-// updated
-    $('#id_product').change(update_component_select_from_product);
-    if (!$('#id_component').val().length) {
-        update_component_select_from_product();
-    }
-
+  }
   // new feature for searching by case id.
   var quick_search = jQ("#tp_quick_search_cases_form");
   var normal_search = jQ("#tp_normal_search_case_form");
@@ -640,7 +628,7 @@ Nitrate.TestPlans.SearchCase.on_load = function() {
   });
 
   if (jQ('#id_table_cases').length) {
-    jQ('#id_table_cases').DataTable({
+    jQ('#id_table_cases').dataTable({
       "aoColumnDefs":[{ "bSortable":false, "aTargets":[ 'nosort' ] }],
       "aaSorting": [[ 1, "desc" ]],
       "sPaginationType": "full_numbers",
@@ -657,8 +645,7 @@ Nitrate.TestPlans.SearchCase.on_load = function() {
 };
 
 Nitrate.TestPlans.Clone.on_load = function() {
-    configure_product_on_load();
-    update_version_select_from_product($('#id_product'), '#id_product_version')
+  bind_version_selector_to_product(false);
 
   jQ('#id_link_testcases').bind('change', function(e) {
     if (this.checked) {
@@ -679,6 +666,10 @@ Nitrate.TestPlans.Clone.on_load = function() {
       jQ('#id_keep_case_default_tester')[0].disabled = true;
     }
   });
+  // Populate product version field.
+  if (jQ('#id_product').length && !jQ('#id_product_version').val()) {
+    fireEvent(jQ('#id_product')[0],'change');
+  }
 
   jQ('.js-cancel-button').bind('click', function() {
     window.history.back();
@@ -946,22 +937,208 @@ function selectedCaseIds(container) {
 
 
 function changeTestCasePriority(plan_id, case_ids, new_value, container) {
-    case_ids.forEach(function(element){
-        jsonRPC('TestCase.update', [element, {priority: new_value}], function(data) {});
-    });
+    var afterPriorityChangedCallback = function(response) {
+      var returnobj = jQ.parseJSON(response.responseText);
+      if (returnobj.rc != 0) {
+        window.alert(returnobj.response);
+        return false;
+      }
 
-    var template_type = 'case';
-    if (container.attr('id') === 'reviewcases') {
-        template_type = 'review_case';
+      var template_type = 'case';
+
+      if (container.attr('id') === 'reviewcases') {
+          template_type = 'review_case';
+      }
+
+      var parameters = {
+          'a': 'initial',
+          'from_plan': plan_id,
+          'template_type': template_type,
+      };
+
+      constructPlanDetailsCasesZone(container, plan_id, parameters);
+    };
+
+    jQ.ajax({
+      'type': 'POST',
+      'url': '/ajax/update/cases-priority/',
+      'data': {'case': case_ids, 'new_value': new_value },
+      'success': function (data, textStatus, jqXHR) {
+        afterPriorityChangedCallback(jqXHR);
+      },
+      'error': function (jqXHR, textStatus, errorThrown) {
+        json_failure(jqXHR);
+      }
+    });
+}
+
+
+/*
+ * Event handler invoked when TestCases' Automated is changed.
+ */
+function onTestCaseAutomatedClick(options) {
+  var form = options.form;
+  var table = options.table;
+  var plan_id = options.planId;
+  var container = options.container;
+
+  return function(e) {
+    var selection = serializeCaseFromInputList2(table);
+    if (selection.empty()) {
+      window.alert(default_messages.alert.no_case_selected);
+      return false;
     }
 
-    var parameters = {
-        'a': 'initial',
-        'from_plan': plan_id,
-        'template_type': template_type,
+    var dialogContainer = getDialog();
+    var afterAutomatedChangedCallback = function(response) {
+      var returnobj = jQ.parseJSON(response.responseText);
+      if (returnobj.rc != 0) {
+        window.alert(returnobj.response);
+        return false;
+      }
+
+      var params = serialzeCaseForm(form, table, true, true);
+      /*
+       * FIXME: this is confuse. There is no need to assign this
+       *        value explicitly when update component and category.
+       */
+      params.a = 'search';
+      params.case = selection.selectedCasesIds;
+      constructPlanDetailsCasesZone(container, plan_id, params);
+      clearDialog(dialogContainer);
     };
-    constructPlanDetailsCasesZone(container, plan_id, parameters);
+
+    constructCaseAutomatedForm(dialogContainer, afterAutomatedChangedCallback, {
+        'zoneContainer': container,
+        'casesSelection': selection
+      });
+  };
 }
+
+/*
+ * To change selected cases' category.
+ */
+function onCategoryClick(options) {
+  var form = options.form;
+  var table = options.table;
+  var plan_id = options.planId;
+  var container = options.container;
+  var parameters = options.parameters;
+
+  return function(e) {
+    if (this.diabled) {
+      return false;
+    }
+    var c = getDialog();
+    var params = {
+      /*
+       * FIXME: the first time execute this code, it's unnecessary
+       *        to pass selected cases' ids to the server.
+       */
+      'case': serializeCaseFromInputList(table),
+      'product': Nitrate.TestPlans.Instance.fields.product_id
+    };
+    if (params['case'] && params['case'].length == 0) {
+      window.alert(default_messages.alert.no_case_selected);
+      return false;
+    }
+    var form_observe = function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+
+      var selection = serializeCaseFromInputList2(table);
+      if (selection.empty()) {
+        window.alert(default_messages.alert.no_case_selected);
+        return false;
+      }
+
+      var params = serializeFormData({
+        'form': this,
+        'zoneContainer': container,
+        'casesSelection': selection
+      });
+      if (params.indexOf('o_category') < 0) {
+        window.alert(default_messages.alert.no_category_selected);
+        return false;
+      }
+
+      var url = Nitrate.http.URLConf.reverse({ name: 'cases_category' });
+      var callback = function(response) {
+        var returnobj = jQ.parseJSON(response.responseText);
+        if (returnobj.rc != 0) {
+          window.alert(returnobj.response);
+          return false;
+        }
+        // TODO: whether can use params rather than parameters.
+        parameters['case'] = selection.selectedCasesIds;
+        constructPlanDetailsCasesZone(container, plan_id, parameters);
+        clearDialog(c);
+      };
+
+      updateCaseCategory(url, params, callback);
+    };
+    renderCategoryForm(c, params, form_observe);
+  };
+}
+
+/*
+ * To change selected cases' component.
+ */
+function onTestCaseComponentClick(options) {
+  var form = options.form;
+  var table = options.table;
+  var plan_id = options.planId;
+  var container = options.container;
+  var parameters = options.parameters;
+
+  return function(e) {
+    if (this.diabled) {
+      return false;
+    }
+    var c = getDialog();
+    var params = {
+      // FIXME: remove this line. It's unnecessary any more.
+      'case': serializeCaseFromInputList(table),
+      'product': Nitrate.TestPlans.Instance.fields.product_id
+    };
+    if (params['case'] && params['case'].length == 0) {
+      window.alert(default_messages.alert.no_case_selected);
+      return false;
+    }
+    var form_observe = function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+
+      var selection = serializeCaseFromInputList2(table);
+      if (selection.empty()) {
+        window.alert(default_messages.alert.no_case_selected);
+        return false;
+      }
+
+      var params = serializeFormData({
+        'form': this,
+        'zoneContainer': container,
+        'casesSelection': selection
+      });
+
+      var url = Nitrate.http.URLConf.reverse({ name: 'cases_component' });
+      var cbAfterComponentChanged = function(response) {
+        returnobj = jQ.parseJSON(response.responseText);
+        if (returnobj.rc != 0) {
+          window.alert(returnobj.response);
+          return false;
+        }
+        parameters['case'] = selection.selectedCasesIds;
+        constructPlanDetailsCasesZone(container, plan_id, parameters);
+        clearDialog(c);
+      };
+
+      updateCaseComponent(url, params, cbAfterComponentChanged);
+    };
+    renderComponentForm(c, params, form_observe);
+  };
+}
+
 
 /*
  * To change selected cases' Reviewer or Default tester.
@@ -1099,6 +1276,28 @@ function constructPlanDetailsCasesZoneCallback(options) {
       });
     }
 
+    // Observe the batch case automated status button
+    element = jQ(form).parent().find('input.btn_automated')[0];
+    if (element !== undefined) {
+      jQ(element).bind('click', onTestCaseAutomatedClick({
+        'form': form, 'table': table, 'container': container, 'planId': plan_id
+      }));
+    }
+
+    element = jQ(form).parent().find('input.btn_component')[0];
+    if (element !== undefined) {
+      jQ(element).bind('click', onTestCaseComponentClick({
+        'container': container, 'form': form, 'planId': plan_id, 'table': table, 'parameters': parameters
+      }));
+    }
+
+    element = jQ(form).parent().find('input.btn_category')[0];
+    if (element !== undefined) {
+      jQ(element).bind('click', onCategoryClick({
+        'container': container, 'form': form, 'planId': plan_id, 'table': table, 'parameters': parameters
+      }));
+    }
+
     jQ(container).find('input[value="all"]').live('click', function(e) {
         Nitrate.TestPlans.Details.toggleSelectAllInput(jQ(container));
     });
@@ -1212,8 +1411,6 @@ function constructPlanDetailsCasesZone(container, plan_id, parameters) {
         toggleAllCases(this);
       });
       jQ(casesTable).find('.js-case-field').bind('click', function() {
-// todo: we don't need a POST and resort. This can be done with DataTables
-// and we can leave sorting to the widget
         sortCase(container, jQ(this).parents('thead').data('param'), jQ(this).data('param'));
       });
     },

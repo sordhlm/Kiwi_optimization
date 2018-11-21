@@ -19,6 +19,7 @@ Submodules
 
 .. toctree::
 
+   tcms.testplans.actions
    tcms.testplans.admin
    tcms.testplans.forms
    tcms.testplans.models

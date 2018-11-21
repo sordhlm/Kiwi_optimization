@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from django.forms import EmailField, ValidationError
-
+from django.forms.models import model_to_dict
 from modernrpc.core import rpc_method, REQUEST_KEY
 
 from tcms.core.utils import form_errors_to_list
 from tcms.management.models import Tag
 from tcms.management.models import Component
-from tcms.testcases.models import TestCase
+from tcms.testcases.models import TestCase, Category
 from tcms.xmlrpc.forms import UpdateCaseForm, NewCaseForm
 
 from tcms.xmlrpc.decorators import permissions_required
@@ -306,9 +306,32 @@ def filter(query):  # pylint: disable=redefined-builtin
         serialized_case = case.serialize()
         serialized_case['text'] = case.latest_text().serialize()
         results.append(serialized_case)
-
+        print(serialized_case)
+    cate_list = []
+    for key in query.keys():
+        if key == "category":
+            print("category exist")
+            findAllSubCategory(query[key],cate_list)
+    print("****print the catelist")
+    print(cate_list)
+    for cate in cate_list:
+        for case in TestCase.objects.filter(category=cate).distinct():
+            serialized_case = case.serialize()
+            serialized_case['text'] = case.latest_text().serialize()
+            results.append(serialized_case)
     return results
 
+def findAllSubCategory(id, clist):
+    catelist = []
+    catelist = Category.objects.filter(parent_category = id)
+    if catelist:
+        for cate in catelist:
+            cate_s = cate.serialize()
+            clist.append(cate_s['id'])
+            findAllSubCategory(cate_s['id'],clist)
+    else:
+        #print("no cate found")
+        return 0
 
 @permissions_required('testcases.change_testcase')
 @rpc_method(name='TestCase.update')

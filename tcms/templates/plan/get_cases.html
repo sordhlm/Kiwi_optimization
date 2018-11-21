@@ -44,11 +44,13 @@
                                 </li>
                         {% endif %}
 			{% if perms.testcases.change_testcase %}
+				<li><input type="button" value="Automated" title="change automated" class="btn_automated automated sprites icon_plan" /></li>
                                 {% if REQUEST_CONTENTS.template_type == 'review_case' %}
                                 <li><input type="button" value="Reviewer"       title="Change TestCase reviewer" class="btn_reviewer       assignee sprites icon_plan" /></li>
                                 {% else %}
                                 <li><input type="button" value="Default Tester" title="Change default tester"    class="btn_default_tester assignee sprites icon_plan" /></li>
                                 {% endif %}
+				<li><input type="button" value="Component" class="btn_component sprites component icon_plan" /></li>
 				<li><span class='sprites toolbar_status icon_plan'>Status</span>
 					<ul>
 						{% for cs in case_status %}
@@ -56,6 +58,7 @@
 						{% endfor %}
 					</ul>
 				</li>
+				<li><input type="button" value="Category" class="btn_category sprites category icon_plan" /></li>
 				<li><span class='sprites toolbar_priority icon_plan'>Priority</span>
 					<ul>
 						{% for priority in priorities %}

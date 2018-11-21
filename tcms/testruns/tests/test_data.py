@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name, too-many-ancestors
+# pylint: disable=invalid-name
 
 from datetime import datetime
 

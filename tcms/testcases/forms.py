@@ -128,6 +128,7 @@ class BaseCaseForm(forms.Form):
             self.script_val = ''
         super(BaseCaseForm, self).__init__(*args, **kwargs)
 
+
     def clean_is_automated(self):
         data = self.cleaned_data['is_automated']
         if len(data) == 2:
@@ -383,6 +384,49 @@ class CloneCaseForm(forms.Form):
         self.fields['case'].queryset = TestCase.objects.filter(case_id__in=case_ids)
 
 
+class CaseAutomatedForm(forms.Form):
+    a = forms.ChoiceField(
+        choices=(('change', 'Change'),),
+        widget=forms.HiddenInput(),
+    )
+    o_is_automated = forms.BooleanField(
+        label='Automated', required=False,
+        help_text='This is an automated test case.',
+    )
+    o_is_manual = forms.BooleanField(
+        label='Manual', required=False,
+        help_text='This is a manual test case.',
+    )
+    o_is_automated_proposed = forms.BooleanField(
+        label='Autoproposed', required=False,
+        help_text='This test case is planned to be automated.'
+    )
+
+    def clean(self):
+        super(CaseAutomatedForm, self).clean()
+        cdata = self.cleaned_data.copy()  # Cleanen data
+
+        cdata['is_automated'] = None
+        cdata['is_automated_proposed'] = None
+
+        if cdata['o_is_manual'] and cdata['o_is_automated']:
+            cdata['is_automated'] = 2
+        else:
+            if cdata['o_is_manual']:
+                cdata['is_automated'] = 0
+
+            if cdata['o_is_automated']:
+                cdata['is_automated'] = 1
+
+        cdata['is_automated_proposed'] = cdata['o_is_automated_proposed']
+
+        return cdata
+
+    def populate(self):
+
+        self.fields['case'].queryset = TestCase.objects.all()
+
+
 class CaseBugForm(forms.ModelForm):
     case = forms.ModelChoiceField(queryset=TestCase.objects.all(),
                                   widget=forms.HiddenInput())
@@ -402,3 +446,42 @@ class CaseBugForm(forms.ModelForm):
     class Meta:
         model = Bug
         fields = '__all__'
+
+
+class CaseComponentForm(forms.Form):
+    product = forms.ModelChoiceField(
+        queryset=Product.objects.all(),
+        empty_label=None,
+        required=False,
+    )
+    o_component = forms.ModelMultipleChoiceField(
+        label="Components",
+        queryset=Component.objects.none(),
+        required=False,
+    )
+
+    def populate(self, product_id=None):
+        if product_id:
+            self.fields['o_component'].queryset = Component.objects.filter(
+                product__id=product_id)
+        else:
+            self.fields['o_component'].queryset = Component.objects.all()
+
+
+class CaseCategoryForm(forms.Form):
+    product = forms.ModelChoiceField(
+        queryset=Product.objects.all(),
+        empty_label=None,
+        required=False,
+    )
+    o_category = forms.ModelMultipleChoiceField(
+        label="Categorys",
+        queryset=Category.objects.none(),
+        required=False,
+    )
+
+    def populate(self, product_id=None):
+        if product_id:
+            self.fields['o_category'].queryset = Category.objects.filter(product__id=product_id)
+        else:
+            self.fields['o_category'].queryset = Category.objects.all()

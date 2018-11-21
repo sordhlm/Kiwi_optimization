@@ -5,6 +5,11 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
+    replaces = [
+        ('testcases', '0002_squashed'),
+        ('testcases', '0003_squashed'),
+    ]
+
     dependencies = [
         ('testcases', '0001_initial'),
         ('testruns', '0004_squashed'),

@@ -302,12 +302,12 @@ class CustomReportData:
     # All data are selected from TestCaseRuns, so following filters are
     # relative to that table.
     report_criteria = {
-        'build': ('build__in', models_to_pks),
+        'pk__in': ('build__in', models_to_pks),
         'product': ('build__product', model_to_pk),
-        'version': ('run__plan__product_version', model_to_pk),
+        'build_run__product_version': ('run__product_version', model_to_pk),
         'build_run__plan__name__icontains': ('run__plan__name__icontains', do_nothing),
-        'category': ('case__category', model_to_pk),
-        'component': ('case__component', model_to_pk),
+        'testcaserun__case__category': ('case__category', model_to_pk),
+        'testcaserun__case__component': ('case__component', model_to_pk),
     }
 
     def __init__(self, form):
@@ -414,7 +414,7 @@ class CustomDetailsReportData(CustomReportData):
 
     # In detail report, there is only one selected test build at a time.
     report_criteria = CustomReportData.report_criteria.copy()
-    report_criteria['build'] = ('build', model_to_pk)
+    report_criteria['pk__in'] = ('build', model_to_pk)
 
     @staticmethod
     def generate_status_matrix(build_ids):
@@ -547,11 +547,11 @@ class TestingReportBaseData:
     """Base data of various testing report"""
     # filter criteria is against TestCaseRun
     report_criteria = {
-        'product': ('build__product', lambda obj: obj.pk),
-        'build': ('build__in', models_to_pks),
-        'created_since': ('run__start_date__gte', do_nothing),
-        'created_before': ('run__start_date__lte', do_nothing),
-        'version': ('run__product_version__in', models_to_pks),
+        'r_product': ('build__product', lambda obj: obj.pk),
+        'r_build': ('build__in', models_to_pks),
+        'r_created_since': ('run__start_date__gte', do_nothing),
+        'r_created_before': ('run__start_date__lte', do_nothing),
+        'r_version': ('run__product_version__in', models_to_pks),
     }
 
     def _filter_query(self, form, query):
@@ -595,10 +595,10 @@ class TestingReportBaseData:
     @staticmethod
     def _get_builds(form):
         """Get selected or all product's builds for display"""
-        builds = form.cleaned_data['build']
+        builds = form.cleaned_data['r_build']
         builds_selected = len(builds) > 0
         if not builds:
-            product = form.cleaned_data['product']
+            product = form.cleaned_data['r_product']
             builds = Build.objects.filter(product=product).only('name')
         return builds, builds_selected
 
@@ -1278,11 +1278,11 @@ class TestingReportCaseRunsData:
     """
 
     run_filter_criteria = {
-        'product': ('run__build__product', do_nothing),
-        'build': ('run__build__in', models_to_pks),
-        'created_since': ('run__start_date__gte', do_nothing),
-        'created_before': ('run__start_date__lte', do_nothing),
-        'version': ('run__product_version__in', models_to_pks),
+        'r_product': ('run__build__product', do_nothing),
+        'r_build': ('run__build__in', models_to_pks),
+        'r_created_since': ('run__start_date__gte', do_nothing),
+        'r_created_before': ('run__start_date__lte', do_nothing),
+        'r_version': ('run__product_version__in', models_to_pks),
         'run': ('run__pk', do_nothing),
     }
 

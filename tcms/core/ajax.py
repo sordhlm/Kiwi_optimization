@@ -5,24 +5,71 @@ Shared functions for plan/case/run.
 Most of these functions are use for Ajax.
 """
 from http import HTTPStatus
+from distutils.util import strtobool
 
 from django.db.models import Count
 from django.contrib.auth.models import User
+from django.core import serializers
 from django.forms import ValidationError
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.generic.base import View
 from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.decorators import permission_required
 
+from tcms.management.models import Component, Build, Version
 from tcms.testcases.models import TestCase, Bug
+from tcms.testcases.models import Category
 from tcms.testcases.models import TestCaseTag
 from tcms.testplans.models import TestPlan, TestPlanTag
 from tcms.testruns.models import TestCaseRun, TestRunTag
 from tcms.core.helpers.comments import add_comment
 from tcms.core.utils.validations import validate_bug_id
+
+
+# todo: all calls on the front-end can be replaced with jsonRPC
+# and this must be removed
+@require_GET
+def info(request):
+    """Ajax responder for misc information"""
+
+    objects = _InfoObjects(request=request, product_id=request.GET.get('product_id'))
+    info_type = getattr(objects, request.GET.get('info_type'))
+
+    if not info_type:
+        return HttpResponse('Unrecognizable info-type')
+
+    return HttpResponse(serializers.serialize('json', info_type(), fields=('name', 'value')))
+
+
+class _InfoObjects:
+
+    def __init__(self, request, product_id=None):
+        self.request = request
+        try:
+            self.product_id = int(product_id)
+        except (ValueError, TypeError):
+            self.product_id = 0
+
+    def builds(self):
+        try:
+            is_active = strtobool(self.request.GET.get('is_active', default='False'))
+        except (ValueError, TypeError):
+            is_active = False
+
+        return Build.objects.filter(product_id=self.product_id, is_active=is_active)
+
+    def categories(self):
+        return Category.objects.filter(product__id=self.product_id)
+
+    def components(self):
+        return Component.objects.filter(product__id=self.product_id)
+
+    def versions(self):
+        return Version.objects.filter(product__id=self.product_id)
 
 
 def tags(request):
@@ -134,6 +181,56 @@ def say_no(error_msg):
 
 def say_yes():
     return JsonResponse({'rc': 0, 'response': 'ok'})
+
+
+@method_decorator(permission_required('testcases.change_testcase'), name='dispatch')
+class UpdateTestCaseStatusView(View):
+    """Updates TestCase.case_status_id. Called from the front-end."""
+
+    http_method_names = ['post']
+
+    def post(self, request):
+        status_id = int(request.POST.get('new_value'))
+        case_ids = request.POST.getlist('case[]')
+
+        for test_case in TestCase.objects.filter(pk__in=case_ids):
+            test_case.case_status_id = status_id
+            test_case.save()
+
+        # Case is moved between Cases and Reviewing Cases tabs accoding to the
+        # change of status. Meanwhile, the number of cases with each status
+        # should be updated also.
+        plan_id = request.POST.get("from_plan")
+        test_plan = get_object_or_404(TestPlan, pk=plan_id)
+
+        confirmed_cases_count = test_plan.case.filter(case_status__name='CONFIRMED').count()
+        total_cases_count = test_plan.case.count()
+        review_cases_count = total_cases_count - confirmed_cases_count
+
+        return JsonResponse({
+            'rc': 0,
+            'response': 'ok',
+            'run_case_count': confirmed_cases_count,
+            'case_count': total_cases_count,
+            'review_case_count': review_cases_count,
+        })
+
+
+@method_decorator(permission_required('testcases.change_testcase'), name='dispatch')
+class UpdateTestCasePriorityView(View):
+    """Updates TestCase.priority_id. Called from the front-end."""
+
+    http_method_names = ['post']
+
+    def post(self, request):
+        priority_id = int(request.POST.get('new_value'))
+        case_ids = request.POST.getlist('case[]')
+
+        for test_case in TestCase.objects.filter(pk__in=case_ids):
+            test_case.priority_id = priority_id
+            test_case.save()
+
+        return JsonResponse({'rc': 0, 'response': 'ok'})
 
 
 @method_decorator(permission_required('testcases.change_testcase'), name='dispatch')
@@ -255,3 +352,44 @@ def update_bugs_to_caseruns(request):
     except ValueError as error:
         return say_no(str(error))
     return say_yes()
+
+
+# TODO: replace this with JSON-RPC API calls
+# discussed in https://github.com/kiwitcms/Kiwi/pull/512
+def get_prod_related_objs(p_pks, target):
+    """
+    Get Component, Version, Category, and Build\n
+    Return [(id, name), (id, name)]
+    """
+    ctypes = {
+        'component': (Component, 'name'),
+        'version': (Version, 'value'),
+        'build': (Build, 'name'),
+        'category': (Category, 'name'),
+    }
+    attr = ctypes[target][1]
+    results = []
+    for result in ctypes[target][0].objects.filter(product__in=p_pks):
+        results.append((result.pk, getattr(result, attr)))
+    return results
+
+
+def get_prod_related_obj_json(request):
+    """
+    View for updating product drop-down\n
+    in a Ajax way.
+    """
+    data = request.GET.copy()
+    target = data.get('target', None)
+    product_ids = data.get('p_ids', None)
+    sep = data.get('sep', None)
+    # py2.6: all(*values) => boolean ANDs
+    if target and product_ids and sep:
+        product_pks = []
+        for key in product_ids.split(sep):
+            if key:
+                product_pks.append(key)
+        result = get_prod_related_objs(product_pks, target)
+    else:
+        result = []
+    return JsonResponse(result, safe=False)

@@ -28,6 +28,12 @@ def reverse_add_initial_data(apps, schema_editor):
 
 class Migration(migrations.Migration):
 
+    replaces = [
+        ('testruns', '0001_initial'),
+        ('testruns', '0002_squashed'),
+        ('testruns', '0003_squashed')
+    ]
+
     initial = True
 
     dependencies = [

@@ -18,11 +18,11 @@ class CheckSettingsMiddleware(MiddlewareMixin):
         doc_url = 'https://kiwitcms.readthedocs.io/en/latest/admin.html#configure-kiwi-s-base-url'
         site = Site.objects.get(pk=settings.SITE_ID)
 
-        if site.domain == '127.0.0.1:8000':
-            messages.add_message(
-                request,
-                messages.ERROR,
-                _('Base URL is not configured! '
-                  'See <a href="%s">documentation</a> and <a href="%s">change it</a>') %
-                (doc_url, reverse('admin:sites_site_change', args=[site.pk]))
-            )
+        #if site.domain == '127.0.0.1:8000':
+        #    messages.add_message(
+        #        request,
+        #        messages.ERROR,
+        #        _('Base URL is not configured! '
+        #          'See <a href="%s">documentation</a> and <a href="%s">change it</a>') %
+        #        (doc_url, reverse('admin:sites_site_change', args=[site.pk]))
+        #    )

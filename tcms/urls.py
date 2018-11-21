@@ -36,8 +36,13 @@ urlpatterns = [
     url(r'^attachments/', include(attachments_urls, namespace='attachments')),
 
     # Ajax call responder
+    url(r'^ajax/update/case-status/$', ajax.UpdateTestCaseStatusView.as_view()),
+    url(r'^ajax/update/cases-priority/$', ajax.UpdateTestCasePriorityView.as_view(),
+        name='ajax.update.cases-priority'),
     url(r'^ajax/update/cases-actor/$', ajax.UpdateTestCaseActorsView.as_view(),
         name='ajax.update.cases-actor'),
+    url(r'^ajax/get-prod-relate-obj/$', ajax.get_prod_related_obj_json),
+    url(r'^management/getinfo/$', ajax.info, name='ajax-info'),
     url(r'^management/tags/$', ajax.tags, name='ajax-tags'),
 
     # comments

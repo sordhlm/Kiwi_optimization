@@ -24,8 +24,8 @@ class TestCaseAdmin(ReadOnlyHistoryAdmin):
 
 class CategoryAdmin(admin.ModelAdmin):
     search_fields = (('name',))
-    list_display = ('id', 'name', 'product', 'description')
-    list_filter = ('product', )
+    list_display = ('id', 'name', 'product', 'description', 'parent_category')
+    list_filter = ('product','parent_category', )
 
 
 class IssueTrackerTypeSelectWidget(Select):

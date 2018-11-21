@@ -19,6 +19,7 @@ Submodules
 
 .. toctree::
 
+   tcms.testcases.actions
    tcms.testcases.admin
    tcms.testcases.fields
    tcms.testcases.forms

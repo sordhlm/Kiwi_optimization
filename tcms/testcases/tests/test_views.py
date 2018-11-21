@@ -7,15 +7,19 @@ from urllib.parse import urlencode
 
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.conf import settings
 from django.forms import ValidationError
 
 from tcms.testcases.fields import MultipleEmailField
 from tcms.management.models import Priority, Tag
 from tcms.testcases.models import TestCase
 from tcms.testcases.models import BugSystem
+from tcms.testcases.models import TestCaseComponent
 from tcms.testcases.models import TestCasePlan
 from tcms.testruns.models import TestCaseRunStatus
-from tcms.tests.factories import BugFactory
+from tcms.tests.factories import ComponentFactory
+from tcms.tests.factories import CategoryFactory
+from tcms.tests.factories import TestCaseComponentFactory
 from tcms.tests.factories import TestCaseFactory
 from tcms.tests.factories import TestPlanFactory
 from tcms.tests import BasePlanCase, BaseCaseRun
@@ -60,33 +64,14 @@ class TestGetCaseRunDetailsAsDefaultUser(BaseCaseRun):
                 html=False
             )
 
-    def test_user_sees_bugs(self):
-        bug_1 = BugFactory()
-        bug_2 = BugFactory()
-
-        self.case_run_1.add_bug(bug_1.bug_id, bug_1.bug_system.pk)
-        self.case_run_1.add_bug(bug_2.bug_id, bug_2.bug_system.pk)
-
-        url = reverse('caserun-detail-pane', args=[self.case_run_1.case.pk])
-        response = self.client.get(
-            url,
-            {
-                'case_run_id': self.case_run_1.pk,
-                'case_text_version': self.case_run_1.case.latest_text_version()
-            }
-        )
-
-        self.assertEqual(HTTPStatus.OK, response.status_code)
-        self.assertContains(response, bug_1.get_full_url())
-        self.assertContains(response, bug_2.get_full_url())
-
 
 class TestMultipleEmailField(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
-        cls.field = MultipleEmailField()
+        super(TestMultipleEmailField, cls).setUpClass()
+        cls.default_delimiter = ','
+        cls.field = MultipleEmailField(delimiter=cls.default_delimiter)
 
     def test_to_python(self):
         value = u'zhangsan@localhost'
@@ -125,6 +110,178 @@ class TestMultipleEmailField(unittest.TestCase):
         self.field.required = False
         data = self.field.clean(value)
         self.assertEqual(data, [])
+
+
+class TestOperateComponentView(BasePlanCase):
+    """Tests for operating components on cases"""
+
+    @classmethod
+    def setUpTestData(cls):
+        super(TestOperateComponentView, cls).setUpTestData()
+
+        cls.comp_application = ComponentFactory(name='Application',
+                                                product=cls.product,
+                                                initial_owner=cls.tester,
+                                                initial_qa_contact=cls.tester)
+        cls.comp_database = ComponentFactory(name='Database',
+                                             product=cls.product,
+                                             initial_owner=cls.tester,
+                                             initial_qa_contact=cls.tester)
+        cls.comp_cli = ComponentFactory(name='CLI',
+                                        product=cls.product,
+                                        initial_owner=cls.tester,
+                                        initial_qa_contact=cls.tester)
+        cls.comp_api = ComponentFactory(name='API',
+                                        product=cls.product,
+                                        initial_owner=cls.tester,
+                                        initial_qa_contact=cls.tester)
+
+        TestCaseComponentFactory(case=cls.case_1, component=cls.comp_cli)
+        TestCaseComponentFactory(case=cls.case_1, component=cls.comp_api)
+
+        user_should_have_perm(cls.tester, 'testcases.add_testcasecomponent')
+
+        cls.cases_component_url = reverse('testcases-component')
+
+    def tearDown(self):
+        remove_perm_from_user(self.tester, 'testcases.delete_testcasecomponent')
+
+    def test_show_components_form(self):
+        self.client.login(  # nosec:B106:hardcoded_password_funcarg
+            username=self.tester.username,
+            password='password')
+
+        response = self.client.post(self.cases_component_url,
+                                    {'product': self.product.pk})
+
+        self.assertContains(
+            response,
+            '<option value="{}" selected="selected">{}</option>'.format(
+                self.product.pk, self.product.name),
+            html=True)
+
+        for comp in (self.comp_application, self.comp_database, self.comp_cli, self.comp_api):
+            comp_option = '<option value="{}">{}</option>'.format(comp.pk, comp.name)
+            self.assertContains(response, comp_option, html=True)
+
+    def test_add_components(self):
+        self.client.login(  # nosec:B106:hardcoded_password_funcarg
+            username=self.tester.username,
+            password='password')
+
+        post_data = {
+            'product': self.product.pk,
+            'o_component': [self.comp_application.pk, self.comp_database.pk],
+            'case': [self.case_1.pk],
+            'a': 'add',
+            'from_plan': self.plan.pk,
+        }
+        response = self.client.post(self.cases_component_url, post_data)
+        self.assertJSONEqual(
+            str(response.content, encoding=settings.DEFAULT_CHARSET),
+            {'rc': 0, 'response': 'ok', 'errors_list': []})
+
+        for comp in (self.comp_application, self.comp_database):
+            case_components = TestCaseComponent.objects.filter(
+                case=self.case_1, component=comp)
+            self.assertTrue(case_components.exists())
+
+    def test_missing_delete_perm(self):
+        self.client.login(  # nosec:B106:hardcoded_password_funcarg
+            username=self.tester.username,
+            password='password')
+
+        post_data = {
+            'o_component': [self.comp_cli.pk, self.comp_api.pk],
+            'case': [self.case_1.pk],
+            'a': 'remove',
+        }
+        response = self.client.post(self.cases_component_url, post_data)
+        self.assertJSONEqual(
+            str(response.content, encoding=settings.DEFAULT_CHARSET),
+            {'rc': 1, 'response': 'Permission denied - delete', 'errors_list': []})
+
+    def test_remove_components(self):
+        self.client.login(  # nosec:B106:hardcoded_password_funcarg
+            username=self.tester.username,
+            password='password')
+
+        user_should_have_perm(self.tester, 'testcases.delete_testcasecomponent')
+
+        post_data = {
+            'o_component': [self.comp_cli.pk, self.comp_api.pk],
+            'case': [self.case_1.pk],
+            'a': 'remove',
+        }
+        response = self.client.post(self.cases_component_url, post_data)
+
+        self.assertJSONEqual(
+            str(response.content, encoding=settings.DEFAULT_CHARSET),
+            {'rc': 0, 'response': 'ok', 'errors_list': []})
+
+        for comp in (self.comp_cli, self.comp_api):
+            case_components = TestCaseComponent.objects.filter(
+                case=self.case_1, component=comp)
+            self.assertFalse(case_components.exists())
+
+
+class TestOperateCategoryView(BasePlanCase):
+    """Tests for operating category on cases"""
+
+    @classmethod
+    def setUpTestData(cls):
+        super(TestOperateCategoryView, cls).setUpTestData()
+
+        cls.case_cat_full_auto = CategoryFactory(name='Full Auto', product=cls.product)
+        cls.case_cat_full_manual = CategoryFactory(name='Full Manual', product=cls.product)
+
+        user_should_have_perm(cls.tester, 'testcases.add_testcasecomponent')
+
+        cls.case_category_url = reverse('testcases-category')
+
+    def test_show_categories_form(self):
+        self.client.login(  # nosec:B106:hardcoded_password_funcarg
+            username=self.tester.username,
+            password='password')
+
+        response = self.client.post(self.case_category_url, {'product': self.product.pk})
+
+        self.assertContains(
+            response,
+            '<option value="{}" selected="selected">{}</option>'.format(
+                self.product.pk, self.product.name),
+            html=True)
+
+        categories = ('<option value="{}">{}</option>'.format(category.pk, category.name)
+                      for category in self.product.category.all())
+        self.assertContains(
+            response,
+            """<select multiple="multiple" id="id_o_category" name="o_category">
+{}
+</select>""".format(''.join(categories)),
+            html=True)
+
+    def test_update_cases_category(self):
+        self.client.login(  # nosec:B106:hardcoded_password_funcarg
+            username=self.tester.username,
+            password='password')
+
+        post_data = {
+            'from_plan': self.plan.pk,
+            'product': self.product.pk,
+            'case': [self.case_1.pk, self.case_3.pk],
+            'a': 'update',
+            'o_category': self.case_cat_full_auto.pk,
+        }
+        response = self.client.post(self.case_category_url, post_data)
+
+        self.assertJSONEqual(
+            str(response.content, encoding=settings.DEFAULT_CHARSET),
+            {'rc': 0, 'response': 'ok', 'errors_list': []})
+
+        for pk in (self.case_1.pk, self.case_3.pk):
+            case = TestCase.objects.get(pk=pk)
+            self.assertEqual(self.case_cat_full_auto, case.category)
 
 
 class TestAddIssueToCase(BasePlanCase):
@@ -416,6 +573,62 @@ class TestEditCase(BasePlanCase):
         self.assertRedirects(response, redirect_url, target_status_code=301)
 
 
+class TestChangeCasesAutomated(BasePlanCase):
+    """Test automated view method"""
+
+    @classmethod
+    def setUpTestData(cls):
+        super(TestChangeCasesAutomated, cls).setUpTestData()
+
+        cls.change_data = {
+            'case': [cls.case_1.pk, cls.case_2.pk],
+            'a': 'change',
+            # Add necessary automated value here:
+            # o_is_automated
+            # o_is_manual
+            # o_is_automated_proposed
+        }
+
+        user_should_have_perm(cls.tester, 'testcases.change_testcase')
+        cls.change_url = reverse('testcases-automated')
+
+    def test_update_automated(self):
+        change_data = self.change_data.copy()
+        change_data['o_is_automated'] = 'on'
+
+        response = self.client.post(self.change_url, change_data)
+
+        self.assertJsonResponse(response, {'rc': 0, 'response': 'ok'})
+
+        for pk in self.change_data['case']:
+            case = TestCase.objects.get(pk=pk)
+            self.assertEqual(1, case.is_automated)
+
+    def test_update_manual(self):
+        change_data = self.change_data.copy()
+        change_data['o_is_manual'] = 'on'
+
+        response = self.client.post(self.change_url, change_data)
+
+        self.assertJsonResponse(response, {'rc': 0, 'response': 'ok'})
+
+        for pk in self.change_data['case']:
+            case = TestCase.objects.get(pk=pk)
+            self.assertEqual(0, case.is_automated)
+
+    def test_update_automated_proposed(self):
+        change_data = self.change_data.copy()
+        change_data['o_is_automated_proposed'] = 'on'
+
+        response = self.client.post(self.change_url, change_data)
+
+        self.assertJsonResponse(response, {'rc': 0, 'response': 'ok'})
+
+        for pk in self.change_data['case']:
+            case = TestCase.objects.get(pk=pk)
+            self.assertTrue(case.is_automated_proposed)
+
+
 class TestPrintablePage(BasePlanCase):
     """Test printable page view method"""
 
@@ -565,5 +778,5 @@ class TestGetCasesFromPlan(BasePlanCase):
                                     content_type='application/x-www-form-urlencoded; charset=UTF-8',
                                     HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(HTTPStatus.OK, response.status_code)
-        self.assertContains(response, 'Set P3')
+        self.assertContains(response,    'Set P3')
         self.assertNotContains(response, 'Set P4')

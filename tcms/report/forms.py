@@ -6,7 +6,7 @@ from tcms.testcases.models import Category
 
 
 class CustomSearchForm(forms.Form):
-    build = forms.ModelMultipleChoiceField(
+    pk__in = forms.ModelMultipleChoiceField(
         label='Build',
         queryset=Build.objects.none(),
         required=False,
@@ -20,7 +20,7 @@ class CustomSearchForm(forms.Form):
             'invalid_choice': '%(value)s is not a valid product ID for '
                               'generating this report.',
         })
-    version = forms.ModelChoiceField(
+    build_run__product_version = forms.ModelChoiceField(
         label='Product version',
         queryset=Version.objects.none(),
         required=False,
@@ -29,12 +29,12 @@ class CustomSearchForm(forms.Form):
         label='Plan name',
         required=False,
     )
-    category = forms.ModelChoiceField(
+    testcaserun__case__category = forms.ModelChoiceField(
         label='Case category',
         queryset=Category.objects.none(),
         required=False,
     )
-    component = forms.ModelChoiceField(
+    testcaserun__case__component = forms.ModelChoiceField(
         label='Case component',
         queryset=Component.objects.none(),
         required=False,
@@ -42,19 +42,21 @@ class CustomSearchForm(forms.Form):
 
     def populate(self, product_id):
         if product_id:
-            self.fields['version'].queryset = Version.objects.filter(
-                product__id=product_id).only('value')
-            self.fields['build'].queryset = Build.objects.filter(
+            self.fields['build_run__product_version'].queryset = \
+                Version.objects.filter(product__id=product_id).only('value')
+            self.fields['pk__in'].queryset = Build.objects.filter(
                 product__id=product_id).only('name')
-            self.fields['category'].queryset = \
+            self.fields['testcaserun__case__category'].queryset = \
                 Category.objects.filter(product__id=product_id).only(
                     'name')
-            self.fields['component'].queryset = \
+            self.fields['testcaserun__case__component'].queryset = \
                 Component.objects.filter(product__id=product_id).only('name')
+        # note: .populate() is executed by CustomReport only if
+        # a=Search (action) which always sends product_id!
 
 
 class CustomSearchDetailsForm(CustomSearchForm):
-    build = forms.ModelChoiceField(
+    pk__in = forms.ModelChoiceField(
         label='Build',
         queryset=Build.objects.none(),
         error_messages={
@@ -77,7 +79,7 @@ REPORT_TYPES = (
 class BasicTestingReportFormFields(forms.Form):
     """Testing report form with basic necessary fields"""
 
-    product = forms.ModelChoiceField(
+    r_product = forms.ModelChoiceField(
         required=True,
         label='Product',
         empty_label=None,
@@ -86,27 +88,38 @@ class BasicTestingReportFormFields(forms.Form):
             'required': 'You have to select a product to generate this '
                         'testing report.',
             'invalid_choice': '%(value)s is not a valid product.',
-        })
+        },
+        widget=forms.Select(attrs={
+            'id': 'r_product',
+        }))
 
-    build = forms.ModelMultipleChoiceField(
+    r_build = forms.ModelMultipleChoiceField(
         required=False,
         label='Build',
         queryset=Build.objects.none(),
         error_messages={
             'invalid_pk_value': '%s is not a valid test build ID.',
             'invalid_choice': 'Test build ID %s does not exist.',
-        })
+        },
+        widget=forms.SelectMultiple(attrs={
+            'id': 'r_build',
+            'size': '5',
+        }))
 
-    version = forms.ModelMultipleChoiceField(
+    r_version = forms.ModelMultipleChoiceField(
         required=False,
         label='Version',
         queryset=Version.objects.none(),
         error_messages={
             'invalid_choice': 'Version ID %s does not exist.',
             'invalid_pk_value': '%s is not a valid version ID.',
-        })
+        },
+        widget=forms.SelectMultiple(attrs={
+            'id': 'r_version',
+            'size': '5',
+        }))
 
-    created_since = forms.DateField(
+    r_created_since = forms.DateField(
         required=False,
         input_formats=['%Y-%m-%d'],
         error_messages={
@@ -114,12 +127,12 @@ class BasicTestingReportFormFields(forms.Form):
                        ' is YYYY-MM-DD.',
         },
         widget=forms.TextInput(attrs={
-            'id': 'created_since',
+            'id': 'r_created_since',
             'style': 'width:130px;',
             'class': 'vDateField',
         }))
 
-    created_before = forms.DateField(
+    r_created_before = forms.DateField(
         required=False,
         input_formats=['%Y-%m-%d'],
         error_messages={
@@ -127,20 +140,20 @@ class BasicTestingReportFormFields(forms.Form):
                        'is YYYY-MM-DD.',
         },
         widget=forms.TextInput(attrs={
-            'id': 'created_before',
+            'id': 'r_created_before',
             'style': 'width:130px;',
             'class': 'vDateField',
         }))
 
     def populate(self, product_id):
         if product_id:
-            self.fields['build'].queryset = Build.objects.filter(
+            self.fields['r_build'].queryset = Build.objects.filter(
                 product=product_id).only('name')
-            self.fields['version'].queryset = Version.objects.filter(
+            self.fields['r_version'].queryset = Version.objects.filter(
                 product=product_id).only('value')
         else:
-            self.fields['build'].queryset = Build.objects.none()
-            self.fields['version'].queryset = Version.objects.none()
+            self.fields['r_build'].queryset = Build.objects.none()
+            self.fields['r_version'].queryset = Version.objects.none()
 
 
 class TestingReportCaseRunsListForm(BasicTestingReportFormFields):
