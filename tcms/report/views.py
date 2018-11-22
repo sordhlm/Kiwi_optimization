@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=too-many-ancestors
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
@@ -26,7 +27,7 @@ from tcms.report.data import TestingReportByPlanTagsData
 from tcms.report.data import TestingReportByPlanTagsDetailData
 from tcms.report.data import TestingReportCaseRunsData
 from tcms.report.forms import CustomSearchForm
-from tcms.search import fmt_queries, remove_from_request_path
+from tcms.search import remove_from_request_path
 
 from .forms import CustomSearchDetailsForm
 
@@ -359,7 +360,7 @@ class CustomReport(TemplateView):
 
     def _initial_context(self):
         return {
-            'form': self.__class__.form_class(),
+            'form': self.form_class(),
             'builds': (),
         }
 
@@ -369,7 +370,7 @@ class CustomReport(TemplateView):
         return self._initial_context()
 
     def get_context_data(self, **kwargs):
-        data = super(CustomReport, self).get_context_data(**kwargs)
+        data = super().get_context_data(**kwargs)
         data.update(self._get_report_data_context())
         return data
 
@@ -468,7 +469,7 @@ class TestingReportBase(TemplateView):
     form_class = TestingReportForm
 
     def _get_form(self, data=None):
-        product_id = self.request.GET.get('r_product')
+        product_id = self.request.GET.get('product')
         if data is not None:
             form = self.form_class(data)
         else:
@@ -491,37 +492,31 @@ class TestingReportBase(TemplateView):
     def _report_context(self):
         errors = None
         report_data = None
-        queries = self.request.GET
 
-        if queries:
+        if self.request.GET:
             form = self._get_form(self.request.GET)
 
             if form.is_valid():
-                queries = form.cleaned_data
                 report_data = self.get_report_data(form)
             else:
                 errors = form.errors
 
-        queries = fmt_queries(queries)
-        del queries['report type']
         request_path = remove_from_request_path(self.request, 'report_type')
 
         data = {
             'errors': errors,
-            'queries': queries,
             'request_path': request_path,
             'run_form': form,
             'report_data': report_data,
         }
 
         if request_path:
-            data['path_without_build'] = remove_from_request_path(request_path,
-                                                                  'r_build')
+            data['path_without_build'] = remove_from_request_path(request_path, 'build')
 
         return data
 
     def get_context_data(self, **kwargs):
-        data = super(TestingReportBase, self).get_context_data(**kwargs)
+        data = super().get_context_data(**kwargs)
 
         if 'report_type' not in self.request.GET:
             context = self._init_context()

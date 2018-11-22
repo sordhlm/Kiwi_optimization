@@ -1,6 +1,5 @@
 Nitrate.TestCases = {};
 Nitrate.TestCases.Details = {};
-Nitrate.TestCases.Create = {};
 Nitrate.TestCases.Edit = {};
 Nitrate.TestCases.Clone = {};
 
@@ -26,6 +25,32 @@ Nitrate.TestCases.Clone = {};
   window.Nitrate.TestCases = TestCases;
 }());
 
+function addComponent(component_name) {
+    jsonRPC('Component.filter',
+            {
+                'name': component_name,
+                'product_id': Nitrate.TestCases.Instance.product_id
+            }, function(data){
+                jsonRPC('TestCase.add_component',
+                        [Nitrate.TestCases.Instance.pk, data[0].id],
+                        function(data) {
+                            window.location.reload();
+                        }
+                );
+            }
+    );
+}
+
+function removeComponent(case_id, component_id) {
+    if (! window.confirm(default_messages.confirm.remove_case_component)) {
+      return false;
+    }
+
+    jsonRPC('TestCase.remove_component', [case_id, component_id], function(data){
+        $('#row-' + component_id).hide();
+    });
+}
+
 Nitrate.TestCases.Details.on_load = function() {
   var case_id = Nitrate.TestCases.Instance.pk;
   constructTagZone(jQ('#tag')[0], { 'case': case_id });
@@ -41,93 +66,33 @@ Nitrate.TestCases.Details.on_load = function() {
     fireEvent(jQ('a[href=\"' + window.location.hash + '\"]')[0], 'click');
   }
 
-  jQ('#id_update_component').bind('click', function(e) {
-    if (this.diabled) {
-      return false;
-    }
-
-    var params = {
-      'case': Nitrate.TestCases.Instance.pk,
-      'product': Nitrate.TestCases.Instance.product_id,
-      'category': Nitrate.TestCases.Instance.category_id
-    };
-
-    var form_observe = function(e) {
-      e.stopPropagation();
-      e.preventDefault();
-
-      var params = Nitrate.Utils.formSerialize(this);
-      params['case'] = Nitrate.TestCases.Instance.pk;
-
-      var url = Nitrate.http.URLConf.reverse({ name: 'cases_component' });
-      var success = function(t) {
-        returnobj = jQ.parseJSON(t.responseText);
-
-        if (returnobj.rc === 0) {
-          window.location.reload();
-        } else {
-          window.alert(returnobj.response);
-          return false;
-        }
-      };
-
-      jQ.ajax({
-        'url': url,
-        'type': 'POST',
-        'data': params,
-        'traditional': true,
-        'success': function (data, textStatus, jqXHR) {
-          success(jqXHR);
+    // configure autocomplete for components
+    jQ('#id_components').autocomplete({
+        'source': function(request, response) {
+            jsonRPC('Component.filter',
+                    {
+                        'name__startswith': request.term,
+                        'product_id': Nitrate.TestCases.Instance.product_id,
+                    }, function(data) {
+                        var processedData = [];
+                        data.forEach(function(element) {
+                            processedData.push(element.name);
+                        });
+                        response(processedData);
+                    }
+            );
         },
-        'error': function (jqXHR, textStatus, errorThrown) {
-          json_failure(jqXHR);
-        }
-      });
-    };
+        'appendTo': '#id_components_autocomplete'
+    });
 
-    renderComponentForm(getDialog(), params, form_observe);
-  });
-
-  jQ('#id_form_case_component').bind('submit', function(e) {
-    e.stopPropagation();
-    e.preventDefault();
-    var params = Nitrate.Utils.formSerialize(this);
-    var submitButton = jQ(this).find(':submit')[0];
-    params[submitButton.name] = submitButton.value;
-    var parameters = {
-      'a': params['a'],
-      'case': Nitrate.TestCases.Instance.pk,
-      'o_component': params['component']
-    };
-
-    if (!parameters['o_component']) {
-      return false;
-    }
-
-    var c = window.confirm(default_messages.confirm.remove_case_component);
-    if (!c) {
-      return false;
-    }
-
-    updateCaseComponent(this.action, parameters, json_success_refresh_page);
-  });
+    $('#js-add-component').bind('click', function() {
+        addComponent($('#id_components').val());
+    });
 
   jQ('.link_remove_component').bind('click', function(e) {
-    var c = window.confirm(default_messages.confirm.remove_case_component);
-    if (!c) {
-      return false;
-    }
-
-    var form = jQ('#id_form_case_component')[0];
-    var parameters = {
-      'a': 'Remove',
-      'case': Nitrate.TestCases.Instance.pk,
-      'o_component': jQ('input[name="component"]')[jQ('.link_remove_component').index(this)].value
-    };
-    updateCaseComponent(form.action, parameters, json_success_refresh_page);
+    removeComponent(Nitrate.TestCases.Instance.pk,
+                    jQ('input[name="component"]')[jQ('.link_remove_component').index(this)].value);
   });
-
-  bindSelectAllCheckbox(jQ('#id_checkbox_all_components')[0], jQ('#id_form_case_component')[0], 'component');
 
   var toggle_case_run = function(e) {
     var c = jQ(this).parent(); // Container
@@ -164,23 +129,6 @@ Nitrate.TestCases.Details.on_load = function() {
 
   jQ('.plan_expandable').bind('click', toggle_case_runs_by_plan);
 
-  jQ('#testplans_table').dataTable({
-    "bFilter": false,
-    "bLengthChange": false,
-    "bPaginate": false,
-    "bInfo": false,
-    "bAutoWidth": false,
-    "aaSorting": [[ 0, "desc" ]],
-    "aoColumns": [
-      {"sType": "html"},
-      {"sType": "html"},
-      {"sType": "html"},
-      {"sType": "html"},
-      null,
-      {"bSortable": false}
-    ]
-  });
-
   jQ('.js-remove-button').bind('click', function(event) {
     var params = jQ(event.target).data('params');
     removeCaseBug(params.id, params.caseId, params.caseRunId);
@@ -195,51 +143,18 @@ Nitrate.TestCases.Details.on_load = function() {
   });
 };
 
-Nitrate.TestCases.Create.on_load = function() {
-  SelectFilter.init("id_component", "component", 0, "/static/admin/");
-  //init category and components
-  getCategorisByProductId(false, jQ('#id_product')[0], jQ('#id_category')[0]);
-  var from = 'id_component_from';
-  var to = 'id_component_to';
-  var from_field = jQ('#' + from)[0];
-  var to_field = jQ('#' + to)[0];
-  jQ(to_field).html('');
-  getComponentsByProductId(false, jQ('#id_product')[0], from_field, function() {
-    SelectBox.cache[from] = [];
-    SelectBox.cache[to] = [];
-    for (var i = 0; (node = from_field.options[i]); i++) {
-      SelectBox.cache[from].push({value: node.value, text: node.text, displayed: 1});
-    }
-  });
-  // bind change on product to update component and category
-  jQ('#id_product').change(function () {
-    var from = 'id_component_from';
-    var to = 'id_component_to';
-    var from_field = jQ('#' + from)[0];
-    var to_field = jQ('#' + to)[0];
-    jQ(to_field).html('');
-    getComponentsByProductId(false, jQ('#id_product')[0], from_field, function() {
-      SelectBox.cache[from] = [];
-      SelectBox.cache[to] = [];
-      for (var i = 0; (node = from_field.options[i]); i++) {
-        SelectBox.cache[from].push({value: node.value, text: node.text, displayed: 1});
-      }
+function configure_product_on_load() {
+    $('#id_product').change(function() {
+        $('#id_category').find('option').remove();
+        update_category_select_from_product();
     });
-    getCategorisByProductId(false, jQ('#id_product')[0], jQ('#id_category')[0]);
-  });
-
-  jQ('.js-case-cancel').bind('click', function() {
-    window.history.go(-1);
-  });
-  if (jQ('.js-plan-cancel').length) {
-    jQ('.js-plan-cancel').bind('click', function() {
-      window.location.href = jQ(this).data('param');
-    });
-  }
-};
+}
 
 Nitrate.TestCases.Edit.on_load = function() {
-  bind_category_selector_to_product(false, false, jQ('#id_product')[0], jQ('#id_category')[0]);
+    configure_product_on_load();
+    if ($('#id_category').val() === null || !$('#id_category').val().length) {
+        update_category_select_from_product();
+    }
 
   jQ('.js-back-button').bind('click', function() {
     window.history.go(-1);
@@ -247,7 +162,10 @@ Nitrate.TestCases.Edit.on_load = function() {
 };
 
 Nitrate.TestCases.Clone.on_load = function() {
-  bind_version_selector_to_product(true);
+    $('#id_product').change(update_version_select_from_product);
+    if (!$('#id_version').val().length) {
+        update_version_select_from_product();
+    }
 
   jQ('#id_form_search_plan').bind('submit', function(e) {
     e.stopPropagation();
@@ -374,16 +292,13 @@ function toggleTestCaseContents(template_type, container, content_container, obj
   toggleExpandArrow({ caseRowContainer: jQ(container), expandPaneContainer: jQ(content_container) });
 }
 
-function changeTestCaseStatus(plan_id, case_id, new_value, container) {
-  var success = function(data, textStatus, jqXHR) {
-    var returnobj = jQ.parseJSON(jqXHR.responseText);
-    if (returnobj.rc !== 0) {
-      window.alert(returnobj.response);
-      return false;
-    }
+function changeTestCaseStatus(plan_id, case_ids, new_value, container) {
+    case_ids.forEach(function(element) {
+        jsonRPC('TestCase.update', [element, {case_status: new_value}], function(data) {});
+    });
+
 
     var template_type = 'case';
-
     if (container.attr('id') === 'reviewcases') {
         template_type = 'review_case';
     }
@@ -394,31 +309,11 @@ function changeTestCaseStatus(plan_id, case_id, new_value, container) {
         'template_type': template_type,
     };
 
+    // todo: #run_case_count, #case_count, #review_case_count
+    // are no longer updated
     constructPlanDetailsCasesZone(container, plan_id, parameters);
 
-    jQ('#run_case_count').text(returnobj.run_case_count);
-    jQ('#case_count').text(returnobj.case_count);
-    jQ('#review_case_count').text(returnobj.review_case_count);
-
     Nitrate.TestPlans.Details.reopenTabHelper(jQ(container));
-  };
-
-  var data = {
-    'from_plan': plan_id,
-    'case': case_id,
-    'target_field': 'case_status',
-    'new_value': new_value,
-  };
-
-  jQ.ajax({
-    'url': '/ajax/update/case-status/',
-    'type': 'POST',
-    'data': data,
-    'success': success,
-    'error': function (jqXHR, textStatus, errorThrown) {
-      json_failure(jqXHR);
-    }
-  });
 }
 
 function toggleAllCheckBoxes(element, container, name) {
@@ -589,7 +484,7 @@ function constructPlanCaseZone(container, case_id, parameters) {
       previewPlan(p, action_url, callback);
     });
     if (jQ('#testplans_table td a').length) {
-      jQ('#testplans_table').dataTable({
+      jQ('#testplans_table').DataTable({
         "bFilter": false,
         "bLengthChange": false,
         "bPaginate": false,
@@ -640,175 +535,6 @@ function removePlanFromCase(container, plan_id, case_id) {
   jQ('#plan_count').text(jQ('table#testplans_table').attr('count'));
 }
 
-function renderComponentForm(container, parameters, form_observe) {
-  var d = jQ('<div>');
-  if (!container) {
-    var container = getDialog();
-  }
-  jQ(container).show();
-
-  var callback = function(t) {
-    var action = Nitrate.http.URLConf.reverse({ name: 'cases_component' });
-    var notice = 'Press "Ctrl" to select multiple default component';
-    var h = jQ('<input>', {'type': 'hidden', 'name': 'a', 'value': 'add'});
-    var a = jQ('<input>', {'type': 'submit', 'value': 'Add'});
-    var c = jQ('<label>');
-    c.append(h);
-    c.append(a);
-    a.bind('click', function(e) { h.val('add'); });
-    var f = constructForm(d.html(), action, form_observe, notice, c[0]);
-    jQ(container).html(f);
-    bind_component_selector_to_product(false, false, jQ('#id_product')[0], jQ('#id_o_component')[0]);
-  };
-
-  var url = Nitrate.http.URLConf.reverse({ name: 'cases_component' });
-
-  jQ.ajax({
-    'url': url,
-    'type': 'POST',
-    'data': parameters,
-    'success': function (data, textStatus, jqXHR) {
-      d.html(data);
-    },
-    'error': function (jqXHR, textStatus, errorThrown) {
-      html_failure();
-    },
-    'complete': function() {
-      callback();
-    }
-  });
-}
-
-
-function renderCategoryForm(container, parameters, form_observe) {
-  var d = jQ('<div>');
-  if (!container) {
-    var container = getDialog();
-  }
-  jQ(container).show();
-
-  var callback = function(t) {
-    var action = Nitrate.http.URLConf.reverse({ name: 'cases_category' });
-    var notice = 'Select Category';
-    var h = jQ('<input>', {'type': 'hidden', 'name': 'a', 'value': 'add'});
-    var a = jQ('<input>', {'type': 'submit', 'value': 'Select'});
-    var c = jQ('<label>');
-    c.append(h);
-    c.append(a);
-    a.bind('click', function(e) { h.val('update'); });
-    var f = constructForm(d.html(), action, form_observe, notice, c[0]);
-    jQ(container).html(f);
-    bind_category_selector_to_product(false, false, jQ('#id_product')[0], jQ('#id_o_category')[0]);
-  };
-
-  var url = Nitrate.http.URLConf.reverse({ name: 'cases_category' });
-
-  jQ.ajax({
-    'url': url,
-    'type': 'POST',
-    'data': parameters,
-    'success': function (data, textStatus, jqXHR) {
-      d.html(data);
-    },
-    'error': function (jqXHR, textStatus, errorThrown) {
-      html_failure();
-    },
-    'complete': function() {
-      callback();
-    }
-  });
-}
-
-// FIXME: this
-function updateCaseComponent(url, parameters, callback) {
-  jQ.ajax({
-    'url': url,
-    'type': 'POST',
-    'data': parameters,
-    'traditional': true,
-    'success': function (data, textStatus, jqXHR) {
-      callback(jqXHR);
-    },
-    'error': function (jqXHR, textStatus, errorThrown) {
-      json_failure(jqXHR);
-    }
-  });
-}
-
-// FIXME: this, and other code that calls Ajax.Request
-function updateCaseCategory(url, parameters, callback) {
-  jQ.ajax({
-    'url': url,
-    'type': 'POST',
-    'data': parameters,
-    'success': function (data, textStatus, jqXHR) {
-      callback(jqXHR);
-    },
-    'error': function (jqXHR, textStatus, errorThrown) {
-      json_failure(jqXHR);
-    }
-  });
-}
-
-function constructCaseAutomatedForm(container, callback, options) {
-  jQ(container).html(getAjaxLoading());
-  jQ(container).show();
-
-  var d = jQ('<div>', { 'class': 'automated_form' })[0];
-  var create_form_cb = function(t) {
-    var returntext = t.responseText;
-    var action = '/cases/automated/';
-    var form_observe = function(e) {
-      e.stopPropagation();
-      e.preventDefault();
-
-      if (!jQ(this).find('input[type="checkbox"]:checked').length) {
-        window.alert('Nothing selected');
-        return false;
-      }
-
-      var params = serializeFormData({
-        form: this,
-        zoneContainer: options.zoneContainer,
-        casesSelection: options.casesSelection
-      });
-      /*
-       * Have to add this. The form generated before does not contain a
-       * default value `change'. In fact, the field a must contain the
-       * only value `change', here.
-       */
-      params = params.replace(/a=\w*/, 'a=change');
-      var url = Nitrate.http.URLConf.reverse({ name: 'cases_automated' });
-      jQ.ajax({
-        'url': url,
-        'type': 'POST',
-        'data': params,
-        'success': function (data, textStatus, jqXHR) {
-          callback(jqXHR);
-        }
-      });
-    };
-    var f = constructForm(returntext, action, form_observe);
-    jQ(container).html(f);
-  };
-
-
-  // load the HTML form
-  jQ.ajax({
-    'url': '/cases/form/automated/',
-    'type': 'GET',
-    'success': function (data, textStatus, jqXHR) {
-      jQ(container).html(data);
-    },
-    'error': function (jqXHR, textStatus, errorThrown) {
-      window.alert('Getting form get errors');
-      return false;
-    },
-    'complete': function(jqXHR) {
-      create_form_cb(jqXHR);
-    }
-  });
-}
 
 /*
  * Serialize selected cases' Ids.

@@ -91,14 +91,8 @@ $(document).ready(function() {
     });
 
     $('#id_product').change(function() {
-        var product_id = $(this).val();
-        if (product_id) {
-            jsonRPC('Version.filter', {product: product_id}, updateVersionSelect);
-            jsonRPC('Build.filter', {product: product_id}, updateBuildSelect);
-        } else {
-            updateVersionSelect([]);
-            updateBuildSelect([]);
-        }
+        update_version_select_from_product();
+        update_build_select_from_product();
     });
 
     $('.bootstrap-switch').bootstrapSwitch();

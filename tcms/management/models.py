@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from django.db import models
+from django.conf import settings
 
 from tcms.core.models import TCMSActionModel
 
@@ -32,10 +33,13 @@ class Product(TCMSActionModel):
         serializer = ProductXMLRPCSerializer(model_class=cls, queryset=qs)
         return serializer.serialize_queryset()
 
-    def save(self, *args, **kwargs):
-        super(Product, self).save(*args, **kwargs)
-        # reverse many-to-one relations from other models
-        # which point to Product via FK
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        super().save(force_insert=force_insert,
+                     force_update=force_update,
+                     using=using,
+                     update_fields=update_fields)
+
         self.category.get_or_create(name='--default--')
         self.version.get_or_create(value='unspecified')
         self.build.get_or_create(name='unspecified')
@@ -59,14 +63,14 @@ class Component(TCMSActionModel):
     name = models.CharField(max_length=64)
     product = models.ForeignKey(Product, related_name='component', on_delete=models.CASCADE)
     initial_owner = models.ForeignKey(
-        'auth.User',
+        settings.AUTH_USER_MODEL,
         db_column='initialowner',
         related_name='initialowner',
         null=True,
         on_delete=models.CASCADE
     )
     initial_qa_contact = models.ForeignKey(
-        'auth.User',
+        settings.AUTH_USER_MODEL,
         db_column='initialqacontact',
         related_name='initialqacontact',
         blank=True,
@@ -124,12 +128,6 @@ class Build(TCMSActionModel):
         qs = cls.objects.filter(**_query).order_by('pk')
         serializer = BuildXMLRPCSerializer(model_class=cls, queryset=qs)
         return serializer.serialize_queryset()
-
-    @classmethod
-    def list_active(cls, query={}):
-        if isinstance(query, dict):
-            query['is_active'] = True
-        return cls.objects.filter(**query)
 
     def __str__(self):
         return self.name

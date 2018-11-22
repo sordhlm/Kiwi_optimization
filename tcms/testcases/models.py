@@ -12,7 +12,7 @@ from tcms.core.models import TCMSActionModel
 from tcms.core.utils.checksum import checksum
 from tcms.core.history import KiwiHistoricalRecords
 from tcms.issuetracker.types import IssueTrackerType
-from tcms.testcases.fields import CC_LIST_DEFAULT_DELIMITER
+from tcms.testcases.fields import MultipleEmailField
 
 
 AUTOMATED_CHOICES = (
@@ -113,8 +113,6 @@ class TestCase(TCMSActionModel):
     case_status = models.ForeignKey(TestCaseStatus, on_delete=models.CASCADE)
     category = models.ForeignKey(Category, related_name='category_case',
                                  on_delete=models.CASCADE)
-    #section = models.ForeignKey(Section, related_name='section_case',
-    #                             on_delete=models.CASCADE)
     priority = models.ForeignKey('management.Priority', related_name='priority_case',
                                  on_delete=models.CASCADE)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='cases_as_author',
@@ -366,11 +364,11 @@ class TestCase(TCMSActionModel):
         current_idx = pk_list.index(self.pk)
         prev = TestCase.objects.get(pk=pk_list[current_idx - 1])
         try:
-            next = TestCase.objects.get(pk=pk_list[current_idx + 1])
+            _next = TestCase.objects.get(pk=pk_list[current_idx + 1])
         except IndexError:
-            next = TestCase.objects.get(pk=pk_list[0])
+            _next = TestCase.objects.get(pk=pk_list[0])
 
-        return (prev, next)
+        return (prev, _next)
 
     def get_text_with_version(self, case_text_version=None):
         if case_text_version:
@@ -388,12 +386,14 @@ class TestCase(TCMSActionModel):
         text = self.text
         if not text_required:
             text = text.defer('action', 'effect', 'setup', 'breakdown')
-        qs = text.order_by('-case_text_version')[0:1]
-        return NoneText if len(qs) == 0 else qs[0]
+        latest_text = text.order_by('-case_text_version').first()
+        return latest_text or NoneText
 
     def latest_text_version(self):
-        qs = self.text.order_by('-case_text_version').only('case_text_version')[0:1]
-        return 0 if len(qs) == 0 else qs[0].case_text_version
+        latest_version = self.text.order_by('-case_text_version').only('case_text_version').first()
+        if latest_version:
+            return latest_version.case_text_version
+        return 0
 
     def remove_bug(self, bug_id, run_id=None):
         query = Bug.objects.filter(
@@ -631,14 +631,14 @@ class TestCaseEmailSettings(models.Model):
             if address not in emailaddr_list:
                 emailaddr_list.append(address)
 
-        self.cc_list = CC_LIST_DEFAULT_DELIMITER.join(emailaddr_list)
+        self.cc_list = MultipleEmailField.delimiter.join(emailaddr_list)
         self.save()
 
     def get_cc_list(self):
         """ Return the whole CC list """
         if not self.cc_list:
             return []
-        return self.cc_list.split(CC_LIST_DEFAULT_DELIMITER)
+        return self.cc_list.split(MultipleEmailField.delimiter)
 
     def remove_cc(self, email_addrs):
         """Remove one or more email addresses from EmailSettings' CC list
@@ -655,5 +655,5 @@ class TestCaseEmailSettings(models.Model):
             if address in emailaddr_list:
                 emailaddr_list.remove(address)
 
-        self.cc_list = CC_LIST_DEFAULT_DELIMITER.join(emailaddr_list)
+        self.cc_list = MultipleEmailField.delimiter.join(emailaddr_list)
         self.save()

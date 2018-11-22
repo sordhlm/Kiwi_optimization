@@ -59,9 +59,6 @@ $(document).ready(function() {
         var updateCategory = function(data) {
             updateSelect(data, '#id_category', 'id', 'name');
         }
-        var updateComponent = function(data) {
-            updateSelect(data, '#id_component', 'id', 'name');
-        }
 
         var genTreeView = function(data) {
             var treedata = [];
@@ -109,11 +106,9 @@ $(document).ready(function() {
         var product_id = $(this).val();
         if (product_id) {
             jsonRPC('Category.filter', {product: product_id}, updateCategory);
-            jsonRPC('Component.filter', {product: product_id}, updateComponent);
             jsonRPC('Category.filter', {product: product_id}, genTreeView);
         } else {
             updateCategory([]);
-            updateComponent([]);
         }
         table.ajax.reload();
     });

@@ -2,6 +2,150 @@ Change Log
 ==========
 
 
+Kiwi TCMS 6.2.1 (12 Nov 2018)
+-----------------------------
+
+**IMPORTANT:** this is a small release that includes some improvements
+and bug-fixes
+
+Supported upgrade paths::
+
+    5.3   (or older) -> 5.3.1
+    5.3.1 (or newer) -> 6.0.1
+    6.0.1            -> 6.1
+    6.1              -> 6.1.1
+    6.1.1            -> 6.2 (or newer)
+
+
+Improvements
+~~~~~~~~~~~~
+
+- Update to `Patternfly 3.57.0 <https://github.com/patternfly/patternfly/releases>`_
+- Update to `psycopg2 2.7.6.1 <http://initd.org/psycopg/articles/tag/release/>`_
+
+Bug fixes
+~~~~~~~~~
+
+- Fix InvalidQuery, field ``TestCase.default_tester`` cannot be both deferred and
+  traversed using ``select_related`` at the same time. References
+  `Issue #346 <https://github.com/kiwitcms/Kiwi/issues/346>`_
+
+Refactoring
+~~~~~~~~~~~
+
+- Pylint fixes (Ivaylo Ivanov)
+- Remove JavaScript and Python functions in favor of existing JSON-RPC
+- Remove vendored-in ``js/lib/jquery.dataTables.js`` which is now replaced by
+  the npm package ``datatables.net`` (required by Patternfly)
+
+
+Translations
+~~~~~~~~~~~~
+
+- New `French translation <https://crowdin.com/project/kiwitcms/fr#>`_
+  (Christophe CHAUVET)
+
+
+
+Kiwi TCMS 6.2 (02 Nov 2018)
+---------------------------
+
+**IMPORTANT:** this is a small release that removes squashed migrations
+from previous releases and includes a few improvements.
+
+Supported upgrade paths::
+
+    5.3   (or older) -> 5.3.1
+    5.3.1 (or newer) -> 6.0.1
+    6.0.1            -> 6.1
+    6.1              -> 6.1.1
+    6.1.1            -> 6.2
+
+
+Improvements
+~~~~~~~~~~~~
+
+- Update to `Django 2.1.3 <https://docs.djangoproject.com/en/2.1/releases/2.1.3/>`_
+- Update Apache config to print logs on the console. Fixes
+  `Issue #549 <https://github.com/kiwitcms/Kiwi/issues/549>`_
+
+
+Database
+~~~~~~~~
+
+- Remove old variants of squashed migrations from earlier releases
+
+
+Translations
+~~~~~~~~~~~~
+
+- Updated `German translation <https://crowdin.com/project/kiwitcms/de#>`_
+
+
+Refactoring
+~~~~~~~~~~~
+
+- Update ``tcms.tests.factories.BugFactory`` (Ivaylo Ivanov)
+- Add test for ``tcms.testcases.views.group_case_bugs`` (Ivaylo Ivanov)
+- Pylint fixes (Ivaylo Ivanov)
+- Remove unused JavaScript and re-use the existing JSON RPC methods
+
+
+
+Kiwi TCMS 6.1.1 (29 Oct 2018)
+-----------------------------
+
+**IMPORTANT:** this release squashes database migrations and removes
+older migrations that have been squashed in previous releases, a few
+improvements and bug fixes.
+
+Supported upgrade paths::
+
+    5.3   (or older) -> 5.3.1
+    5.3.1 (or newer) -> 6.0.1
+    6.0.1            -> 6.1
+    6.1              -> 6.1.1
+
+
+Improvements
+~~~~~~~~~~~~
+
+- Dashboard will now show TestRuns which have test cases assigned to current
+  user. Fixes
+  `Issue #520 <https://github.com/kiwitcms/Kiwi/issues/520>`_
+- API method ``TestRun.add_case()`` now returns a serialized TestCaseRun object.
+  Previously this method returned None
+
+
+Bug fixes
+~~~~~~~~~
+
+- Don't show disabled Priority records in UI. Fixes
+  `Issue #334 <https://github.com/kiwitcms/Kiwi/issues/334>`_
+
+
+Translations
+~~~~~~~~~~~~
+
+- Updated `Slovenian translation <https://crowdin.com/project/kiwitcms/sl#>`_
+
+
+Refactoring
+~~~~~~~~~~~
+
+- Fix some pylint errors (Ivaylo Ivanov)
+
+
+Database
+~~~~~~~~
+
+- Remove old squashed migrations for ``management``, ``testplans``,
+  ``testcases`` and ``testruns`` apps
+- Squash the remaining migrations for ``management``, ``testplans``,
+  ``testcases`` and ``testruns`` apps
+
+
+
 Kiwi TCMS 6.1 (20 Oct 2018)
 ---------------------------
 
