@@ -416,6 +416,11 @@ function AddIssueDialog(options) {
   } else {
     this.show_bug_id_field = false;
   }
+  if (options.hasOwnProperty("is_file_bug")) {
+    this.is_file_bug = options.is_file_bug;
+  } else {
+    this.is_file_bug = false;
+  }
 }
 
 
@@ -437,6 +442,7 @@ AddIssueDialog.prototype.show = function () {
     'hiddenFields': hiddenPart,
     'action_button_text': this.action,
     'show_bug_id_field': this.show_bug_id_field || this.action === 'Add',
+    'is_file_bug': this.action === 'Report',
     'show_add_to_bugzilla_checkbox': this.action === 'Add',
     'a': this.a,
   };

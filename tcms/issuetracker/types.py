@@ -12,6 +12,7 @@ from urllib.parse import urlencode
 import jira
 import github
 import bugzilla
+import redminelib
 
 from django.conf import settings
 
@@ -43,7 +44,7 @@ class IssueTrackerType:
             raise NotImplementedError('IT of type %s is not supported' % name)
         return globals()[name]
 
-    def report_issue_from_testcase(self, caserun):
+    def report_issue_from_testcase(self, values):
         """
             When marking Test Case results inside a Test Run there is a
             'Report' link. When the `Report' link is clicked this method is called
@@ -99,6 +100,75 @@ class IssueTrackerType:
         """
         pass
 
+class Redmine(IssueTrackerType):
+    def __init__(self, tracker):
+        super(Redmine, self).__init__(tracker)
+        self.rpc = redminelib.Redmine(self.tracker.base_url,\
+            username = self.tracker.api_username, password = self.tracker.api_password)
+
+    def _get_user_id(self, name):
+        users = self.rpc.user.filter(name=name)
+        if len(users) == 1:
+            return users[0].id
+        return -1
+
+    def add_testcase_to_issue(self, testcases, issue):
+        pass
+
+    def is_adding_testcase_to_issue_disabled(self):
+        return not (self.tracker.base_url and self.tracker.api_password)
+
+    def report_issue_from_testcase(self, values):
+        """
+            report issue to Redmine
+        """
+        # because of circular dependencies
+        from tcms.testcases.models import TestCaseText
+        caserun = values['case_run']
+        args = {
+            'title': 'Failed test: %s' % caserun.case.summary,
+        }
+
+        txt = caserun.get_text_with_version(case_text_version=caserun.case_text_version)
+
+        if isinstance(txt, TestCaseText):
+            setup = txt.setup
+            action = txt.action
+            effect = txt.effect
+        else:
+            setup = 'None'
+            action = 'None'
+            effect = 'None'
+
+        comment = "Filed from caserun %s\n\n" % caserun.get_full_url()
+        comment += "Product:\n%s\n\n" % caserun.run.plan.product.name
+        comment += "DUT:\n%s\n\n" % values["dut"]
+        comment += "Version-Release number of selected " \
+                   "component (if applicable):\n"
+        comment += "%s\n\n" % caserun.build.name
+        comment += "Steps to Reproduce: \n%s\n%s\n\n" % (setup, action)
+        comment += "Actual results: \n<describe what happened>\n\n"
+        comment += "Expected results:\n%s\n\n" % effect
+        args['body'] = comment
+
+        tmp = dir(self.rpc.project.get('kiwi'))
+        assign_id = self._get_user_id(values['assign_to'])
+        if assign_id == -1:
+            print("assign_to id is not valid")
+            return "assign_to id is not valid"
+        redmine_issue = self.rpc.issue.create(
+            project_id=values['product'],
+            subject=args['title'],
+            description=comment,
+            status_id=2,
+            priority_id=2,
+            assigned_to_id=assign_id
+        )
+        url = self.tracker.base_url
+        if not url.endswith('/'):
+            url += '/'
+
+        return url+'issues/'+str(redmine_issue.id), redmine_issue.id
 
 class Bugzilla(IssueTrackerType):
     """
@@ -149,10 +219,10 @@ class Bugzilla(IssueTrackerType):
 
         return self.tracker.base_url + 'buglist.cgi?bugidtype=include&bug_id=%s' % ','.join(ids)
 
-    def report_issue_from_testcase(self, caserun):
+    def report_issue_from_testcase(self, values):
         # because of circular dependencies
         from tcms.testcases.models import TestCaseText
-
+        caserun = values['case_run']
         args = {}
         args['cf_build_id'] = caserun.run.build.name
 
@@ -231,14 +301,14 @@ class JIRA(IssueTrackerType):
 
         return self.tracker.base_url + 'issues/?jql=issueKey%%20in%%20(%s)' % '%2C%20'.join(ids)
 
-    def report_issue_from_testcase(self, caserun):
+    def report_issue_from_testcase(self, values):
         """
             For the HTML API description see:
             https://confluence.atlassian.com/display/JIRA050/Creating+Issues+via+direct+HTML+links
         """
         # because of circular dependencies
         from tcms.testcases.models import TestCaseText
-
+        caserun = values['case_run']
         # note: your jira instance needs to have the same projects
         # defined otherwise this will fail!
         project = self.rpc.project(caserun.run.plan.product.name)
@@ -326,13 +396,13 @@ class GitHub(IssueTrackerType):
     def is_adding_testcase_to_issue_disabled(self):
         return not (self.tracker.base_url and self.tracker.api_password)
 
-    def report_issue_from_testcase(self, caserun):
+    def report_issue_from_testcase(self, values):
         """
             GitHub only supports title and body parameters
         """
         # because of circular dependencies
         from tcms.testcases.models import TestCaseText
-
+        caserun = values['case_run']
         args = {
             'title': 'Failed test: %s' % caserun.case.summary,
         }
@@ -364,3 +434,4 @@ class GitHub(IssueTrackerType):
             url += '/'
 
         return url + '/issues/new?' + urlencode(args, True)
+

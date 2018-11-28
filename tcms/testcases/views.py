@@ -117,6 +117,13 @@ def create_testcase(request, form, test_plan):
         test_case.add_component(component=component)
     return test_case
 
+def new_category(request, template_name='category/new.html'):
+    context_data = {
+        'test_plan': test_plan,
+        'form': form
+    }
+    return render(request, template_name, context_data)
+    pass
 
 @permission_required('testcases.add_testcase')
 def new(request, template_name='case/new.html'):

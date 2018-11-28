@@ -162,6 +162,14 @@
 			</select>
 			</br>
 {% verbatim %}
+			{{#if is_file_bug}}
+			<div class="product">Product</div>
+			<input type="text" name="product_name">
+			<div class="assign_to">Assign</div>
+			<input type="text" name="assign_to">
+			<div class="dut">DUT</div>
+			<input type="text" name="dut">
+			{{/if}}
                     {{#if show_bug_id_field}}
 			<div id="bug-system" style="line-height:30px;">
 				<div class="bug_id">Bug ID</div>

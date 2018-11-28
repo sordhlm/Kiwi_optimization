@@ -448,16 +448,31 @@ def bug(request, case_run_id, template_name='run/execute_case_run.html'):
                                  'caserun_bugs_count': self.case_run.get_bugs_count()})
 
         def file(self):
+            values = {}
             bug_system_id = request.GET.get('bug_system_id')
             bug_system = BugSystem.objects.get(pk=bug_system_id)
-
+            product_name = request.GET.get('product_name')
+            dut = request.GET.get('dut')
+            assign_to = request.GET.get('assign_to')
+            values['product'] = product_name
+            values['assign_to'] = assign_to
+            values['case_run'] = self.case_run
+            values['dut'] = dut
             if bug_system.base_url:
+                print("start create bug*********")
                 tracker = IssueTrackerType.from_name(bug_system.tracker_type)(bug_system)
-                url = tracker.report_issue_from_testcase(self.case_run)
+                url, bug_id = tracker.report_issue_from_testcase(values)
                 response = {'rc': 0, 'response': url}
-
-            response = {'rc': 1, 'response': 'Enable reporting to this Issue Tracker '
-                                             'by configuring its base_url!'}
+            
+                try:
+                    test_case_run.add_bug(bug_id=bug_id,
+                                      bug_system_id=bug_system_id)
+                except ValueError as error:
+                    msg = str(error) if str(error) else 'Failed to add bug %s' % bug_id
+                    response = {'rc': 1, 'response': msg}    
+            else:
+                response = {'rc': 1, 'response': 'Enable Redmine reporting to this Issue Tracker '
+                                             'by configuring its base_url!'}        
             return JsonResponse(response)
 
         def remove(self):

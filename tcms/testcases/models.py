@@ -13,7 +13,7 @@ from tcms.core.utils.checksum import checksum
 from tcms.core.history import KiwiHistoricalRecords
 from tcms.issuetracker.types import IssueTrackerType
 from tcms.testcases.fields import MultipleEmailField
-
+from tcms.management.models import Product
 
 AUTOMATED_CHOICES = (
     (0, 'Manual'),
@@ -82,7 +82,7 @@ vinaigrette.register(TestCaseStatus, ['name'])
 class Category(TCMSActionModel):
     id = models.AutoField(db_column='category_id', primary_key=True)
     name = models.CharField(max_length=255)
-    product = models.ForeignKey('management.Product', related_name="category",
+    product = models.ForeignKey('management.Product', related_name="product", blank=True, 
                                 on_delete=models.CASCADE)
     description = models.TextField(blank=True)
     parent_category = models.ForeignKey('self', verbose_name="parent_category", blank=True, null=True, on_delete=models.CASCADE)
@@ -94,6 +94,24 @@ class Category(TCMSActionModel):
     def __str__(self):
         return self.name
 
+    @classmethod
+    def create(cls, values):
+        """
+        Create the category element based on models/forms.
+        """
+        #print("start create Category")
+        parent = Category.objects.get_or_create(name = values['parent_category'])
+        #print(parent)
+        product = Product.objects.get_or_create(name = values['product'])
+        #print(product)
+        
+        cate = cls(
+            name=values['name'],
+            product=product[0],
+            description=values['description'],
+            parent_category=parent[0],
+        )
+        return cate
 
 class TestCase(TCMSActionModel):
     history = KiwiHistoricalRecords()
