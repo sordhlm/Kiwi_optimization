@@ -156,6 +156,7 @@ Nitrate.TestRuns.Details.on_load = function() {
     jQ('span#complete_percent').text(completePercent);
     jQ('div.progress-inner').attr('style', 'width:' + completePercent + '%');
     jQ('div.progress-failed').attr('style', 'width:' + failedPercent + '%');
+
   });
 
   jQ('#btn_edit').bind('click', function() {
@@ -279,6 +280,9 @@ function updateRunStatus(object_pk, value, callback) {
       json_failure(jqXHR);
     }
   });
+  if (value === "2"){
+    executeTestCase(object_pk);
+  }
 }
 
 var updateCaseRunStatus = function(e) {
@@ -750,6 +754,28 @@ function changeCaseRunAssignee() {
     'error': function (jqXHR, textStatus, errorThrown) {
       json_failure(jqXHR);
     }
+  });
+}
+function getCaseId(run_id){
+  exp = 'input[name="case_run"][value="'+run_id+'"]'
+  elements = jQ('#id_table_cases').parent().find(exp);
+  return elements[0].value;
+}
+
+function executeTestCase(object_pk) {
+  object_pk.forEach(function(v,i){
+    case_id = getCaseId(v);
+    //window.alert("start run case "+case_id);
+    //console.log("start run case "+case_id)
+    var success_callback = function(t) {
+      var returnobj = t;
+      window.alert("run case done");
+    };
+    //var c = jQ(this); // Container
+    //var parameters = Nitrate.Utils.formSerialize(c.context.form);
+    //var case_id = parameters['case_id'];
+    var url = Nitrate.http.URLConf.reverse({ 'name': 'run_case', 'arguments': {'id': case_id} });
+    jQ.ajax({ url: url, dataType: 'json', data: [], success: success_callback });
   });
 }
 

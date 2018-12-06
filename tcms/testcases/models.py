@@ -13,7 +13,7 @@ from tcms.core.utils.checksum import checksum
 from tcms.core.history import KiwiHistoricalRecords
 from tcms.issuetracker.types import IssueTrackerType
 from tcms.testcases.fields import MultipleEmailField
-from tcms.management.models import Product
+from tcms.management.models import Product, Classification
 
 AUTOMATED_CHOICES = (
     (0, 'Manual'),
@@ -82,14 +82,14 @@ vinaigrette.register(TestCaseStatus, ['name'])
 class Category(TCMSActionModel):
     id = models.AutoField(db_column='category_id', primary_key=True)
     name = models.CharField(max_length=255)
-    product = models.ForeignKey('management.Product', related_name="product", blank=True, 
+    product = models.ForeignKey('management.Product', related_name="category", blank=True, 
                                 on_delete=models.CASCADE)
     description = models.TextField(blank=True)
     parent_category = models.ForeignKey('self', verbose_name="parent_category", blank=True, null=True, on_delete=models.CASCADE)
     
     class Meta:
         verbose_name_plural = u'test case categories'
-        unique_together = ('product', 'name')
+        #unique_together = ('product', 'name','parent_category__id')
 
     def __str__(self):
         return self.name
@@ -99,17 +99,32 @@ class Category(TCMSActionModel):
         """
         Create the category element based on models/forms.
         """
-        #print("start create Category")
-        parent = Category.objects.get_or_create(name = values['parent_category'])
-        #print(parent)
-        product = Product.objects.get_or_create(name = values['product'])
-        #print(product)
+        product_id = values.get('product_id')
+
+        if product_id:
+            product = Product.objects.get(id=product_id)
+            print(product)
+        elif values.get('product') and values.get('classification'):
+            classification = Classification.objects.get_or_create(name = values['classification'])
+            ret = Product.objects.get_or_create(name = values['product'], classification = classification[0])
+            product = ret[0]
+        else:
+            raise ValueError('Product not specify')
+        parent_id = values.get('parent_category_id')
+        if parent_id:
+            parent = Category.objects.get(id=parent_id)
+            print(parent)
+        elif values.get('parent_category'):
+            ret = Category.objects.get_or_create(name = values['parent_category'],product = product[0])
+            parent = ret[0]
+        else:
+            raise ValueError('Parent category not specify')
         
         cate = cls(
             name=values['name'],
-            product=product[0],
+            product=product,
             description=values['description'],
-            parent_category=parent[0],
+            parent_category=parent,
         )
         return cate
 

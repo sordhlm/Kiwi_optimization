@@ -14,6 +14,7 @@ from tcms.testcases.models import BugSystem, Category, TestCase
 
 class TestCaseAdmin(ReadOnlyHistoryAdmin):
     actions = ['delete_selected']
+    list_display = ('case_id', 'summary', 'category')
 
     def add_view(self, request, form_url='', extra_context=None):
         return HttpResponseRedirect(reverse('testcases-new'))

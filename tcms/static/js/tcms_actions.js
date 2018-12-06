@@ -92,6 +92,7 @@ var default_messages = {
       case_details: '/case/$id/',
       case_plan: '/case/$id/plan/',
       case_run_bug: '/caserun/$id/bug/',
+      run_case:'/caserun/$id/runcase/',
       search_case: '/cases/',
     },
 

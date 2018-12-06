@@ -154,8 +154,7 @@ class Redmine(IssueTrackerType):
         tmp = dir(self.rpc.project.get('kiwi'))
         assign_id = self._get_user_id(values['assign_to'])
         if assign_id == -1:
-            print("assign_to id is not valid")
-            return "assign_to id is not valid"
+            return "assign_to id is not valid", -1
         redmine_issue = self.rpc.issue.create(
             project_id=values['product'],
             subject=args['title'],

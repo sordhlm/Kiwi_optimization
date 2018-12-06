@@ -404,6 +404,13 @@ class TestRunReportView(TemplateView, TestCaseRunDataMixin):
 
         return context
 
+@require_GET
+def runcase(request, case_id, template_name='run/execute_case.html'):
+    import time
+    print("[views.runcase] case_id:%s"%case_id)
+    time.sleep(5)
+    return JsonResponse({'rc': 1,
+                     'response': 'run case'})
 
 @require_GET
 @permission_required('testruns.change_testrun')
@@ -462,14 +469,16 @@ def bug(request, case_run_id, template_name='run/execute_case_run.html'):
                 print("start create bug*********")
                 tracker = IssueTrackerType.from_name(bug_system.tracker_type)(bug_system)
                 url, bug_id = tracker.report_issue_from_testcase(values)
-                response = {'rc': 0, 'response': url}
-            
-                try:
-                    test_case_run.add_bug(bug_id=bug_id,
+                if bug_id != -1:
+                    response = {'rc': 0, 'response': url}
+                    try:
+                        test_case_run.add_bug(bug_id=bug_id,
                                       bug_system_id=bug_system_id)
-                except ValueError as error:
-                    msg = str(error) if str(error) else 'Failed to add bug %s' % bug_id
-                    response = {'rc': 1, 'response': msg}    
+                    except ValueError as error:
+                        msg = str(error) if str(error) else 'Failed to add bug %s' % bug_id
+                        response = {'rc': 1, 'response': msg}
+                else:
+                    response = {'rc': 1, 'response': url} 
             else:
                 response = {'rc': 1, 'response': 'Enable Redmine reporting to this Issue Tracker '
                                              'by configuring its base_url!'}        
