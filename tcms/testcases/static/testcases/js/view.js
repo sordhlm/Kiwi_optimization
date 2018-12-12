@@ -14,7 +14,6 @@ $(document).ready(function() {
             //if ($('#id_category').val()) {
             //    params['category'] = $('#id_category').val();
             //};
-            console.log(params['category'])
             dataTableJsonRPC('TestCase.filter', params, callback);
         },
         columns: [
@@ -64,31 +63,37 @@ $(document).ready(function() {
             var treedata = [];
             var node_list = [];
             var max_parent = 1;
+            var max_depth = 10;
+            var default_id = 0;
             data.forEach(function(element) {
                 var node = {text:"",nodes:[],id:0,parent_id:0};
                 node.text = element.name;
                 node.id = element.id;
                 node.parent_id = element.parent_category_id;
                 node_list.push(node)
+                if(node.text == "--default--"){
+                    default_id = node.id
+                }
                 if(node.parent_id > max_parent){
                     max_parent = node.parent_id;
                 }
             })
             treedata = node_list.filter(function(element) {
-                return (element.parent_id == 1 && element.id != 1);
+                return (element.parent_id == default_id && element.id != default_id);
             });
-            if (max_parent > 1){
-                for(var i = 2;i <= max_parent; i++){
-                    sub_list = node_list.filter(function(element) {
-                        return (element.parent_id == i);
-                    });
-                    if (Number(sub_list) != 0){
-                        sub_list.forEach(function(element){
-                            addSubNode(treedata,element);
-                        });
-                    }
-                }
-            }
+            //if (max_parent > 1){
+            //    for(var i = 2;i <= max_parent; i++){
+            //        sub_list = node_list.filter(function(element) {
+            //            return (element.parent_id == i);
+            //        });
+            //        if (Number(sub_list) != 0){
+            //            sub_list.forEach(function(element){
+            //                addSubNode(treedata,element);
+            //            });
+            //        }
+            //    }
+            //}
+            addSubNode(treedata,node_list);
 
             tree = $('#tree').treeview({    
                 data: treedata, 
@@ -120,16 +125,18 @@ $(document).ready(function() {
 
     $('.selectpicker').selectpicker();
 });
-function addSubNode(list,node){
-    if (Number(list) == 0){
+function addSubNode(treedata,tlist){
+    if ((Number(treedata) == 0)||(Number(tlist) == 0)){
         return 1;
-    }
-    list.forEach(function(element,index) {
-        if(element.id == node.parent_id){
-            element.nodes.push(node)
-            return 0;
+    }   
+    treedata.forEach(function(item,index) {
+        sub_list = tlist.filter(function(element) {
+            return (item.id == element.parent_id);
+        });
+        if (Number(sub_list) == 0){
+            return 1;
         }
-        return addSubNode(element.nodes,node)
+        item.nodes = sub_list;
+        return addSubNode(item.nodes,tlist);
     });
 }
-

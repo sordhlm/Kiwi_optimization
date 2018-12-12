@@ -248,6 +248,7 @@ def get(request, run_id, template_name='run/get.html'):
 
         for case_run in test_case_runs:
             yield (case_run,
+                   "172.29.131.19",
                    testers.get(case_run.tested_by_id, None),
                    assignees.get(case_run.assignee_id, None),
                    priorities.get(case_run.case.priority_id),
@@ -466,7 +467,6 @@ def bug(request, case_run_id, template_name='run/execute_case_run.html'):
             values['case_run'] = self.case_run
             values['dut'] = dut
             if bug_system.base_url:
-                print("start create bug*********")
                 tracker = IssueTrackerType.from_name(bug_system.tracker_type)(bug_system)
                 url, bug_id = tracker.report_issue_from_testcase(values)
                 if bug_id != -1:
@@ -848,4 +848,24 @@ class UpdateCaseRunStatusView(View):
             test_case_run.close_date = datetime.now()
             test_case_run.save()
 
+        return JsonResponse({'rc': 0, 'response': 'ok'})
+
+@method_decorator(permission_required('testruns.change_testcaserun'), name='dispatch')
+class RunCaseThenUpdateStatus(View):
+    """Updates TestCaseRun.case_run_status_id. Called from the front-end."""
+
+    http_method_names = ['post']
+
+    def post(self, request):
+        import time
+        object_ids = request.POST.getlist('object_pk[]')
+        print(object_ids)
+        for caserun_pk in object_ids:
+            test_case_run = get_object_or_404(TestCaseRun, pk=int(caserun_pk))
+            print("case_id:%d"%test_case_run.case.case_id)
+            #test_case_run.case_run_status_id = status_id
+            #test_case_run.tested_by = request.user
+            #test_case_run.close_date = datetime.now()
+            #test_case_run.save()
+        time.sleep(5)
         return JsonResponse({'rc': 0, 'response': 'ok'})

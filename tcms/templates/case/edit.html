@@ -27,8 +27,10 @@
 {% block custom_javascript %}
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
 <script src="{% static 'js/jsonrpc.js' %}"></script>
+<!--
+<script src="{% static 'bootstrap-select/dist/js/bootstrap-select.js' %}"></script>
+-->
 <script src="{% static 'js/utils.js' %}"></script>
-
 <script type="text/javascript" src="{% static 'js/testcase_actions.js' %}"></script>
 <script type="text/javascript">
 Nitrate.Utils.after_page_load(Nitrate.TestCases.Edit.on_load);
@@ -70,11 +72,11 @@ Nitrate.Utils.after_page_load(Nitrate.TestCases.Edit.on_load);
 					</div>
 					<div class="data_row">
 						<label>Product</label>
-						<div>{{ form.product }}</div>
+						<span>{{ form.product }}</span></span><a href="{% url 'admin:management_product_add' %}" class="addlink" id="id_addt_product" target="_blank">Add Product</a><span class="grey">After Add and Refresh page</span>
 					</div>
 					<div class="data_row">
 						<label>Category</label>
-						<span id="form_category" >{{ form.category }}</span><a href="{% url 'admin:testcases_category_add' %}" class="addlink" id="id_addt_product_casecategory" target="_blank">Add Category</a><span class="grey">After Add and Refresh page</span>
+                        <span id="form_category" >{{ form.category }}</span><a href="{% url 'admin:testcases_category_add' %}" class="addlink" id="id_addt_product_casecategory" target="_blank">Add Category</a><span class="grey">After Add and Refresh page</span>
 					</div>
 					<div class="data_row">
 						<label>Default Tester</label>

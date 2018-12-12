@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from django.forms import EmailField, ValidationError
-from django.forms.models import model_to_dict
+
 from modernrpc.core import rpc_method, REQUEST_KEY
 
 from tcms.core.utils import form_errors_to_list
@@ -306,14 +306,12 @@ def filter(query):  # pylint: disable=redefined-builtin
         serialized_case = case.serialize()
         serialized_case['text'] = case.latest_text().serialize()
         results.append(serialized_case)
-        print(serialized_case)
+        #print(serialized_case)
+    
     cate_list = []
     for key in query.keys():
         if key == "category":
-            print("category exist")
             findAllSubCategory(query[key],cate_list)
-    print("****print the catelist")
-    print(cate_list)
     for cate in cate_list:
         for case in TestCase.objects.filter(category=cate).distinct():
             serialized_case = case.serialize()

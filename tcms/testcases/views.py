@@ -126,7 +126,7 @@ def new_category(request, template_name='category/new.html'):
     pass
 
 @permission_required('testcases.add_testcase')
-def new(request, template_name='case/new.html'):
+def new(request, template_name='case/edit.html'):
     """New testcase"""
     test_plan = plan_from_request_or_none(request)
     # Initial the form parameters when write new case from plan

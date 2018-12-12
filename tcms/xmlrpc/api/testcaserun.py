@@ -11,6 +11,7 @@ from tcms.core.contrib.linkreference.models import LinkReference
 from tcms.xmlrpc.serializer import XMLRPCSerializer
 from tcms.testruns.models import TestCaseRun
 from tcms.xmlrpc.decorators import permissions_required
+from tcms.management.models import Build
 
 __all__ = (
     'create',
@@ -140,6 +141,12 @@ def update(case_run_id, values, **kwargs):
     from tcms.testruns.forms import XMLRPCUpdateCaseRunForm
 
     tcr = TestCaseRun.objects.get(pk=case_run_id)
+    product = tcr.case.category.product
+    print(values.get('build'))
+    print(product)
+    if isinstance(values.get('build'),str):
+        build, created = Build.objects.get_or_create(name = values['build'], product = product)
+        values['build'] = build.build_id
     form = XMLRPCUpdateCaseRunForm(values)
 
     if form.is_valid():

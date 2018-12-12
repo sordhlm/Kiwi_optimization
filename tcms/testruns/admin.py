@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
 from tcms.core.history import ReadOnlyHistoryAdmin
-from tcms.testruns.models import TestRun
+from tcms.testruns.models import TestRun, Node
 
 
 class TestRunAdmin(ReadOnlyHistoryAdmin):
@@ -29,5 +29,10 @@ class TestRunAdmin(ReadOnlyHistoryAdmin):
                              _('Permission denied: TestRun does not belong to you'))
         return HttpResponseRedirect(reverse('testruns-get', args=[object_id]))
 
+class NodeAdmin(admin.ModelAdmin):
+    search_fields = (('name',))
+    list_display = ('id', 'name', 'ip' , 'description')
+    list_filter = ('name','ip', )
 
+admin.site.register(Node, NodeAdmin)
 admin.site.register(TestRun, TestRunAdmin)

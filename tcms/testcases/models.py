@@ -103,7 +103,6 @@ class Category(TCMSActionModel):
 
         if product_id:
             product = Product.objects.get(id=product_id)
-            print(product)
         elif values.get('product') and values.get('classification'):
             classification = Classification.objects.get_or_create(name = values['classification'])
             ret = Product.objects.get_or_create(name = values['product'], classification = classification[0])
