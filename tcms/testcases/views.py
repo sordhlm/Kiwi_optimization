@@ -23,7 +23,7 @@ from tcms.search import remove_from_request_path
 from tcms.search.order import order_case_queryset
 from tcms.testcases.models import TestCase, TestCaseStatus, \
     TestCasePlan, BugSystem, TestCaseText
-from tcms.management.models import Priority, Tag
+from tcms.management.models import Priority, Tag, Node
 from tcms.testplans.models import TestPlan
 from tcms.testruns.models import TestCaseRun
 from tcms.testruns.models import TestCaseRunStatus
@@ -821,6 +821,7 @@ def get(request, case_id):
         'test_case_status': TestCaseStatus.objects.all(),
         'test_case_run_status': TestCaseRunStatus.objects.all(),
         'bug_trackers': BugSystem.objects.all(),
+        'nodes': Node.objects.all(),
     }
     return render(request, 'case/get.html', context_data)
 

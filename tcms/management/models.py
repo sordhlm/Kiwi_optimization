@@ -5,6 +5,18 @@ from django.conf import settings
 
 from tcms.core.models import TCMSActionModel
 
+class Node(TCMSActionModel):
+    id = models.AutoField(db_column='node_id', primary_key=True)
+    name = models.CharField(max_length=255, blank=True)
+    ip = models.CharField(max_length=255, blank=True)
+    description = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name_plural = u'test node'
+        unique_together = ('name','ip')
+
+    def __str__(self):
+        return self.name
 
 class Classification(TCMSActionModel):
     id = models.AutoField(primary_key=True)

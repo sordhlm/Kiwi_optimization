@@ -26,7 +26,7 @@ from django_comments.models import Comment
 
 from tcms.core.utils import clean_request
 from tcms.core.utils.validations import validate_bug_id
-from tcms.management.models import Priority, Tag
+from tcms.management.models import Priority, Tag, Node
 from tcms.testcases.forms import CaseBugForm
 from tcms.testcases.models import TestCasePlan, TestCaseStatus, BugSystem
 from tcms.testcases.views import get_selected_testcases
@@ -239,6 +239,7 @@ def get(request, run_id, template_name='run/get.html'):
     def walk_case_runs():
         """Walking case runs for helping rendering case runs table"""
         priorities = dict(Priority.objects.values_list('pk', 'value'))
+        nodes = dict(Node.objects.values_list('pk', 'name'))
         testers, assignees = open_run_get_users(test_case_runs)
         test_case_run_pks = []
         for test_case_run in test_case_runs:
@@ -247,8 +248,10 @@ def get(request, run_id, template_name='run/get.html'):
         case_run_status = TestCaseRunStatus.get_names()
 
         for case_run in test_case_runs:
+            #node = nodes.get(case_run.node.id) if case_run.node else "Not Configured"
+            node = case_run.node if case_run.node else "Not Configured"
             yield (case_run,
-                   "172.29.131.19",
+                   node,
                    testers.get(case_run.tested_by_id, None),
                    assignees.get(case_run.assignee_id, None),
                    priorities.get(case_run.case.priority_id),
@@ -266,6 +269,7 @@ def get(request, run_id, template_name='run/get.html'):
         'priorities': Priority.objects.all(),
         'case_own_tags': tags,
         'bug_trackers': BugSystem.objects.all(),
+        'nodes': Node.objects.all(),
     }
     return render(request, template_name, context_data)
 
@@ -844,6 +848,26 @@ class UpdateCaseRunStatusView(View):
         for caserun_pk in object_ids:
             test_case_run = get_object_or_404(TestCaseRun, pk=int(caserun_pk))
             test_case_run.case_run_status_id = status_id
+            test_case_run.tested_by = request.user
+            test_case_run.close_date = datetime.now()
+            test_case_run.save()
+
+        return JsonResponse({'rc': 0, 'response': 'ok'})
+
+@method_decorator(permission_required('testruns.change_testcaserun'), name='dispatch')
+class UpdateCaseNodeView(View):
+    """Updates TestCaseRun.case_run_status_id. Called from the front-end."""
+
+    http_method_names = ['post']
+
+    def post(self, request):
+        node_name = request.POST.get('node_name')
+        object_ids = request.POST.getlist('object_pk[]')
+        node = get_object_or_404(Node, name=(node_name))
+        print(node)
+        for caserun_pk in object_ids:
+            test_case_run = get_object_or_404(TestCaseRun, pk=int(caserun_pk))
+            test_case_run.node = node
             test_case_run.tested_by = request.user
             test_case_run.close_date = datetime.now()
             test_case_run.save()

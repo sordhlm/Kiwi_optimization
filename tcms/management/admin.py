@@ -6,7 +6,7 @@ from tcms.management.models import Classification
 from tcms.management.models import Component, Version
 from tcms.management.models import Priority
 from tcms.management.models import Product
-from tcms.management.models import Build, Tag
+from tcms.management.models import Build, Tag, Node
 
 
 class ClassificationAdmin(admin.ModelAdmin):
@@ -56,6 +56,10 @@ class AttachmentAdmin(admin.ModelAdmin):
 class TagAdmin(admin.ModelAdmin):
     list_display = ('pk', 'name')
 
+class NodeAdmin(admin.ModelAdmin):
+    search_fields = (('name',))
+    list_display = ('id', 'name', 'ip' , 'description')
+    list_filter = ('name','ip', )
 
 admin.site.register(Classification, ClassificationAdmin)
 admin.site.register(Product, ProductsAdmin)
@@ -64,3 +68,4 @@ admin.site.register(Component, ComponentAdmin)
 admin.site.register(Version, VersionAdmin)
 admin.site.register(Build, BuildAdmin)
 admin.site.register(Tag, TagAdmin)
+admin.site.register(Node, NodeAdmin)

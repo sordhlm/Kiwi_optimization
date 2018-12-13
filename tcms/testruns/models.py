@@ -263,20 +263,6 @@ class TestCaseRunStatus(TCMSActionModel):
 # register model for DB translations
 vinaigrette.register(TestCaseRunStatus, ['name'])
 
-class Node(TCMSActionModel):
-    id = models.AutoField(db_column='node_id', primary_key=True)
-    name = models.CharField(max_length=255, blank=True)
-    ip = models.CharField(max_length=255, blank=True)
-    description = models.TextField(blank=True)
-
-    class Meta:
-        verbose_name_plural = u'test node'
-        unique_together = ('name', 'ip')
-
-    def __str__(self):
-        return self.name
-
-
 class TestCaseRun(TCMSActionModel):
     history = KiwiHistoricalRecords()
 
@@ -294,7 +280,7 @@ class TestCaseRun(TCMSActionModel):
     sortkey = models.IntegerField(null=True, blank=True)
 
 
-    node = models.ForeignKey(Node, related_name='node', null=True, on_delete=models.CASCADE)
+    node = models.ForeignKey('management.Node', related_name='node', null=True, on_delete=models.CASCADE)
     run = models.ForeignKey(TestRun, related_name='case_run', on_delete=models.CASCADE)
     case = models.ForeignKey('testcases.TestCase', related_name='case_run',
                              on_delete=models.CASCADE)

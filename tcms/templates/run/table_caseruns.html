@@ -46,7 +46,16 @@
 			<td class="expandable">
 				<a id="link_{{ forloop.counter }}" href="#caserun_{{ test_case_run.pk }}" title="Expand test case">{{ test_case_run.case.summary }}</a>
 			</td>
-			<td class="expandable">{{ node }}</td>
+			<td class="node expandable">	
+				<!--	
+				{{ node }}
+				
+				<a href="{% url "admin:testruns_node_change" node.id %}" class="link_node">{{ node.name }}</a>
+				-->
+				<a href="#" id="node_pop" data-toggle="popover" data-container="body" title="{{node.ip}}" data-placement="right">
+    			{{ node.name }}
+				</a>
+			</td>
 			<td>
 				{% if tester %}
 				<a href="{% url "tcms-profile" tester %}" class="link_tested_by">{{ tester }}</a>

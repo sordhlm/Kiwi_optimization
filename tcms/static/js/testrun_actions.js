@@ -284,6 +284,20 @@ function updateRunStatus(object_pk, value, callback) {
   });
 }
 
+function updateRunNode(object_pk, value, callback) {
+  jQ.ajax({
+    'url': '/run/case-run-update-node/',
+    'type': 'POST',
+    'data': {'object_pk': object_pk, 'node_name': value },
+    'success': function (data, textStatus, jqXHR) {
+      callback();
+    },
+    'error': function (jqXHR, textStatus, errorThrown) {
+      json_failure(jqXHR);
+    }
+  });
+}
+
 var updateCaseRunStatus = function(e) {
   e.stopPropagation();
   e.preventDefault();
@@ -985,6 +999,7 @@ jQ(document).ready(function(){
   }).mouseout(function() {
     jQ(this).find('ul').hide();
   });
+  
   jQ('ul.statusOptions a').click(function() {
     var option = jQ(this).attr('value');
     var object_pks = serializeCaseRunFromInputList(jQ('#id_table_cases')[0]);
@@ -1000,6 +1015,18 @@ jQ(document).ready(function(){
     }
     updateRunStatus(object_pks, option, reloadWindow);
   });
+  jQ('ul.NodesList a').click(function() {
+    var option = jQ(this).attr('value');
+    var object_pks = serializeCaseRunFromInputList(jQ('#id_table_cases')[0]);
+    if (option == '') {
+      return false;
+    }
+    if (!object_pks.length) {
+      window.alert(default_messages.alert.no_case_selected);
+      return false;
+    }
+    updateRunNode(object_pks, option, reloadWindow);
+  });  
 });
 
 function get_addlink_dialog() {

@@ -14,6 +14,10 @@ def forwards_add_initial_data(apps, schema_editor):
         Priority(value='P4', sortkey=4),
         Priority(value='P5', sortkey=5),
     ])
+    Node = apps.get_model('management', 'Node')
+    Node.objects.bulk_create([
+        Node(name='--default--', ip='--default--'),
+    ])
 
 
 def reverse_remove_initial_data(apps, schema_editor):

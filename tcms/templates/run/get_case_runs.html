@@ -51,6 +51,14 @@
 				<li><a href="#" class="addBlue9 js-show-commentdialog">Add</a></li>
 			</ul>
 		</div>
+		<div class="btnBlueCaserun">
+			<span>Nodes</span>
+			<ul class="NodesList">
+				{% for node in nodes %}
+				<li><a value="{{ node.name }}" href="#" class="addBlue9">{{ node }}</a></li>
+				{% endfor %}
+			</ul>
+		</div>
 	</div>
 	<div class="clear"></div>
 </div>

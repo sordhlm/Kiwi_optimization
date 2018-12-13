@@ -28,4 +28,6 @@ urlpatterns = [
         name='testruns-update_caserun_status'),
     url(r'^run-case-then-update-status/$', views.RunCaseThenUpdateStatus.as_view(),
         name='testruns-runcase_then_update_status'),
+    url(r'^case-run-update-node/$', views.UpdateCaseNodeView.as_view(),
+        name='testruns-update_caserun_node'),
 ]
