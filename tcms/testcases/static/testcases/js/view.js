@@ -103,7 +103,7 @@ $(document).ready(function() {
                 showCheckbox: false,
                 onNodeSelected: function(event, data){
                     select_node = data.id;
-                    table.ajax.reload();
+                    reloadTableAndPagainfo(table);
                 }
             });
         }
@@ -115,16 +115,23 @@ $(document).ready(function() {
         } else {
             updateCategory([]);
         }
-        table.ajax.reload();
+        reloadTableAndPagainfo(table);
     });
     $('#id_category').change(function() {
-        table.ajax.reload();
+        reloadTableAndPagainfo(table);
     });
 
     $('.bootstrap-switch').bootstrapSwitch();
 
     $('.selectpicker').selectpicker();
 });
+function reloadTableAndPagainfo(table){
+    var updatePage = function() {
+        var info = table.page.info();
+        $('.total-pages').html(info.pages);
+    }
+    table.ajax.reload(updatePage);  
+}
 function addSubNode(treedata,tlist){
     if ((Number(treedata) == 0)||(Number(tlist) == 0)){
         return 1;
