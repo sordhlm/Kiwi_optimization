@@ -4,14 +4,20 @@
 {% block subtitle %}Add TestCase to TestRun{% endblock %}
 
 {% block custom_stylesheet %}
+<link rel="stylesheet" href="{% static 'patternfly/dist/css/patternfly.min.css' %}">
 {% endblock %}
 
 {% block custom_javascript %}
+<script type="text/javascript" src="{% static 'js/jsonrpc.js' %}"></script>
+<script type="text/javascript" src="{% static 'patternfly/dist/js/patternfly.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/testrun_actions.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/testcase_actions.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/testplan_actions.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/assign_tc.js' %}"></script>
+
 <script type="text/javascript">
 Nitrate.Utils.after_page_load(Nitrate.TestRuns.AssignCase.on_load);
+var plan_id = {{test_run.plan_id}};
 </script>
 {% endblock %}
 
@@ -40,6 +46,7 @@ Nitrate.Utils.after_page_load(Nitrate.TestRuns.AssignCase.on_load);
 			<td>{{ test_case_runs_count }}</td>
 		</tr>
 	</table>
+	<!--
 	<form action="{% url "add-cases-to-run" test_run.run_id %}" method="post">
 		<div class="Detailform border-1" id="testcases_selected">
 			<div class="mixbar">
@@ -62,6 +69,7 @@ Nitrate.Utils.after_page_load(Nitrate.TestRuns.AssignCase.on_load);
 					</p>
 				</div>
 			</div>
+
 			<table id="id_table_cases" class="list" cellpadding="0" cellspacing="0" border="0" >
 				<thead>
 					<tr>
@@ -69,9 +77,11 @@ Nitrate.Utils.after_page_load(Nitrate.TestRuns.AssignCase.on_load);
 						<th class="nosort" align="left" width="20px"></th>
 						<th class="sortcol widthID" align="left" width="50px">ID</th>
 						<th class="sortcol">Test Case Summary</th>
-						<th class="sortcol" width="130">Author</th>
-						<th class="sortcol" width="150">Created Date</th>
 						<th class="sortcol" width="150">Category</th>
+						<th class="sortcol" width="150">cid</th>
+						<th class="sortcol" width="150">pid</th>
+						<th class="sortcol" width="130">Author</th>
+						<th class="sortcol" width="150">Created Date</th>			
 						<th class="sortcol"  width="70">Priority</th>
 						<th class="sortcol"  width="70">Selected</th>
 					</tr>
@@ -96,9 +106,12 @@ Nitrate.Utils.after_page_load(Nitrate.TestRuns.AssignCase.on_load);
 								{{ test_case.case__summary }}
 							</a>
 						</td>
+						<td>{{ test_case.case__category__name }}</td>
+						<td>{{ test_case.case__category_id }}</td>
+						<td>{{ test_case.case__category__parent_category_id }}</td>
 						<td>{{ test_case.case__author__username }}</td>
 						<td>{{ test_case.case__create_date }}</td>
-						<td>{{ test_case.case__category__name }}</td>
+						
 						<td>{{ test_case.case__priority__value }}</td>
 						<td></td>
 					</tr>
@@ -109,6 +122,19 @@ Nitrate.Utils.after_page_load(Nitrate.TestRuns.AssignCase.on_load);
 					</tr>
 					{% endfor %}
 				</tbody>
+			</table>	
+		</div>
+
+	</form>
+	-->
+	<form action="{% url "add-tree-cases-to-run" test_run.run_id %}" method="post">
+		<div class="Detailform border-1" id="testcases_selected_tree">
+			<div class="mixbar">
+				<span class="tit"><b>Cases in this Run: {{ test_case_runs_count }}</b></span>
+				<input type="submit" value="Update" title="Update the cases in this run"/>
+				<input type="reset" value="Reset" title="Reset to the original cases "/>
+			</div>
+			<table id="id_tree_table" class="table table-bordered table-hover table-treegrid">
 			</table>
 		</div>
 	</form>

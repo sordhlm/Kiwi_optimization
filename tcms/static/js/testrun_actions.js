@@ -241,10 +241,11 @@ Nitrate.TestRuns.ChooseRuns.on_load = function() {
 Nitrate.TestRuns.AssignCase.on_load = function() {
   if (jQ('#id_check_all_button').length) {
     jQ('#id_check_all_button').bind('click', function(m) {
+
       toggleAllCheckBoxes(this, 'id_table_cases', 'case');
     });
   }
-
+ 
   jQ('input[name="case"]').bind('click', function(t) {
     if (this.checked) {
       jQ(this).closest('tr').addClass('selection_row');

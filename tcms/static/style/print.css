@@ -5,7 +5,7 @@ Print css
 */
 
 *{margin:0px;padding:0px;}
-body {font-size:0.8em;width:100%;min-width:1150px;padding:0;line-height :1.3em;font-family : Verdana,Arial,sans-serif,Helvetica,Georgia;}
+body {font-size:1.3em;width:100%;min-width:1150px;padding:0;line-height :1.3em;font-family : Verdana,Arial,sans-serif,Helvetica,Georgia;}
 img {border :0;}
 a:link {color:#0061E3;text-decoration :none;}
 a:visited{color:#235d9f;text-decoration :none;}
@@ -215,10 +215,12 @@ hr.dotted{ border:dotted #ccc 0px;border-top-width:1px;}
 .even,.evenRow{ background:#ffffff; }
 .odd, .oddRow { background:#f6f6f6; }
 .selection_row { background:#f3f8fe; border:0px; }
+/*
 .progress-bar{ width:100px; background:#fff url(../images/evenbg.png) repeat-x; height:24px; border:1px solid #ccc; vertical-align:middle; margin:3px 0px 2px 0px; font-size:12px; text-align:right; }
 .progress-bar .percent{ position:absolute; text-align:center; width:100px; color:#333; }
 .progress-inner{ height:24px; background:#78BAE6 url(../images/evenbg.png) repeat-x; color:#333; float:left; text-align:center; left:0px; top:0px; }
 .progress-failed{ height:24px; background:#F53D00 url(../images/evenbg.png) repeat-x; color:#D7670B; float:right; }
+*/
 .min-height-150{ min-height:150px; }
 .subject{ word-wrap:break-word;
 } /********************************list: cases list /runs list ***********************/

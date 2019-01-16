@@ -272,6 +272,7 @@ INSTALLED_APPS = [
     'django_comments',
     'modernrpc',
     'simple_history',
+    'wkhtmltopdf',
 
     'tcms.core',
     'tcms.kiwi_auth',

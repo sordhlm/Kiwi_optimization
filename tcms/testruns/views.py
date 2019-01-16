@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import time
 from datetime import datetime
 from http import HTTPStatus
 
@@ -28,7 +28,7 @@ from tcms.core.utils import clean_request
 from tcms.core.utils.validations import validate_bug_id
 from tcms.management.models import Priority, Tag, Node
 from tcms.testcases.forms import CaseBugForm
-from tcms.testcases.models import TestCasePlan, TestCaseStatus, BugSystem
+from tcms.testcases.models import TestCasePlan, TestCaseStatus, BugSystem, Category
 from tcms.testcases.views import get_selected_testcases
 from tcms.testplans.models import TestPlan
 from tcms.testruns.data import get_run_bug_ids
@@ -36,7 +36,91 @@ from tcms.testruns.data import TestCaseRunDataMixin
 from tcms.testruns.forms import NewRunForm, SearchRunForm, BaseRunForm
 from tcms.testruns.models import TestRun, TestCaseRun, TestCaseRunStatus
 from tcms.issuetracker.types import IssueTrackerType
+from wkhtmltopdf.views import PDFTemplateView
 
+class CustomPDF(PDFTemplateView, TestCaseRunDataMixin):
+    filename = 'my_report_pdf.pdf'
+    template_name = 'run/report.html'
+    cmd_options = {
+        'margin-top': 3,
+    }
+    def get(self, request):
+        self.run_id = request.GET.get("id")
+        return super(CustomPDF, self).get(request, self.run_id)
+    def get_context_data(self, **kwargs):
+        run = TestRun.objects.select_related('manager', 'plan').get(pk=self.run_id)
+
+        case_runs = TestCaseRun.objects.filter(
+            run=run
+        ).select_related(
+            'case_run_status', 'case', 'tested_by'
+        ).only(
+            'close_date',
+            'case_run_status__name',
+            'case__category__name',
+            'case__summary', 'case__is_automated',
+            'case__is_automated_proposed',
+            'tested_by__username'
+        )
+        mode_stats = self.stats_mode_case_runs(case_runs)
+        summary_stats = self.get_summary_stats(case_runs)
+
+        test_case_run_bugs = []
+        bug_system_types = {}
+        for _bug in get_run_bug_ids(self.run_id):
+            # format the bug URLs based on DB settings
+            test_case_run_bugs.append((
+                _bug['bug_id'],
+                _bug['bug_system__url_reg_exp'] % _bug['bug_id'],
+            ))
+            # find out all unique bug tracking systems which were used to record
+            # bugs in this particular test run. we use this data for reporting
+            if _bug['bug_system'] not in bug_system_types:
+                # store a tracker type object for producing the report URL
+                tracker_class = IssueTrackerType.from_name(_bug['bug_system__tracker_type'])
+                bug_system = BugSystem.objects.get(pk=_bug['bug_system'])
+                tracker = tracker_class(bug_system)
+                bug_system_types[_bug['bug_system']] = (tracker, [])
+
+            # store the list of bugs as well
+            bug_system_types[_bug['bug_system']][1].append(_bug['bug_id'])
+
+        # list of URLs which opens all bugs reported to every different
+        # issue tracker used in this test run
+        report_urls = []
+        for (issue_tracker, ids) in bug_system_types.values():
+            report_url = issue_tracker.all_issues_link(ids)
+            # if IT doesn't support this feature or report url is not configured
+            # the above method will return None
+            if report_url:
+                report_urls.append((issue_tracker.tracker.name, report_url))
+
+        case_run_bugs = self.get_case_runs_bugs(run.pk)
+        comments = self.get_case_runs_comments(run.pk)
+
+        for case_run in case_runs:
+            case_run.bugs = case_run_bugs.get(case_run.pk, ())
+            case_run.user_comments = comments.get(case_run.pk, [])
+
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'test_run': run,
+            'test_case_runs': case_runs,
+            'test_case_runs_count': len(case_runs),
+            'test_case_run_bugs': test_case_run_bugs,
+            'mode_stats': mode_stats,
+            'summary_stats': summary_stats,
+            'report_urls': report_urls,
+        })
+
+        return context
+
+@require_GET
+def genPDF(request):
+    filename = 'my_pdf.pdf'
+    template_name = 'run/report.html'
+    print("start genPDF")
+    return PDFTemplateView.as_view(filename=filename, template_name=template_name)(request,1)
 
 @require_POST
 @permission_required('testruns.add_testrun')
@@ -239,7 +323,7 @@ def get(request, run_id, template_name='run/get.html'):
     def walk_case_runs():
         """Walking case runs for helping rendering case runs table"""
         priorities = dict(Priority.objects.values_list('pk', 'value'))
-        nodes = dict(Node.objects.values_list('pk', 'name'))
+        #nodes = dict(Node.objects.values_list('pk', 'name'))
         testers, assignees = open_run_get_users(test_case_runs)
         test_case_run_pks = []
         for test_case_run in test_case_runs:
@@ -249,7 +333,7 @@ def get(request, run_id, template_name='run/get.html'):
 
         for case_run in test_case_runs:
             #node = nodes.get(case_run.node.id) if case_run.node else "Not Configured"
-            node = case_run.node if case_run.node else "Not Configured"
+            node = case_run.node if case_run.node else Node.objects.get(pk=1)
             yield (case_run,
                    node,
                    testers.get(case_run.tested_by_id, None),
@@ -621,6 +705,44 @@ def remove_case_run(request, run_id):
 
     return HttpResponseRedirect(reverse(redirect_to, args=[run_id, ]))
 
+@method_decorator(permission_required('testruns.add_testcaserun'), name='dispatch')
+class AddTreeCasesToRunView(View):
+    """Add cases to a TestRun"""
+
+    def post(self, request, run_id):
+        # Selected cases' ids to add to run
+        test_cases_ids = request.POST.getlist('treecase')
+
+        if not test_cases_ids:
+            # user clicked Update button without selecting new Test Cases
+            # to be dded to TestRun
+            messages.add_message(request,
+                                 messages.ERROR,
+                                 _('At least one TestCase is required'))
+            return HttpResponseRedirect(reverse('add-cases-to-run', args=[run_id]))
+
+        try:
+            test_run = TestRun.objects.select_related('plan').only('plan__plan_id').get(
+                run_id=run_id)
+        except ObjectDoesNotExist:
+            raise Http404
+
+        test_case_runs_ids = test_run.case_run.values_list('case', flat=True)
+
+        # avoid add cases that are already in current run with pk run_id
+        test_case_exist_ids = [str(i) for i in test_case_runs_ids]
+
+        test_cases_ids = set(test_cases_ids) - set(test_case_exist_ids)
+        test_plan = test_run.plan
+        test_cases = test_run.plan.case.filter(case_status__name='CONFIRMED').select_related(
+            'default_tester').only('default_tester__id').filter(
+                case_id__in=test_cases_ids)
+
+        for test_case in test_cases:
+            test_run.add_case_run(case=test_case)
+
+        return HttpResponseRedirect(reverse('testruns-get',
+                                            args=[test_run.run_id, ]))
 
 @method_decorator(permission_required('testruns.add_testcaserun'), name='dispatch')
 class AddCasesToRunView(View):
@@ -688,10 +810,17 @@ class AddCasesToRunView(View):
 
         # select all CONFIRMED cases from the TestPlan that is a parent
         # of this particular TestRun
+        #default_cate = Category.objects.get(product=test_run.plan.product, name='--default--')
+        #category = Category.objects.filter(product=test_run.plan.product)
+        #tree = genNodeList(test_run.plan,default_cate,category)
+        
         rows = TestCasePlan.objects.values(
             'case',
+            'case__category__product_id',
             'case__create_date', 'case__summary',
             'case__category__name',
+            'case__category_id',
+            'case__category__parent_category_id',
             'case__priority__value',
             'case__author__username'
         ).filter(
@@ -705,15 +834,55 @@ class AddCasesToRunView(View):
         test_case_runs = TestCaseRun.objects.filter(run=run_id).values_list('case', flat=True)
 
         data = {
+            'product_id':rows[0]["case__category__product_id"],
             'test_run': test_run,
             'confirmed_cases': rows,
             'confirmed_cases_count': rows.count(),
             'test_case_runs_count': len(test_case_runs),
             'exist_case_run_ids': test_case_runs,
+            'confirmed_status_id':TestCaseStatus.objects.filter(name='CONFIRMED').first().pk
         }
 
         return render(request, 'run/assign_case.html', data)
+def genNodeList(plan,default,tlist):
+    treedata = []
+    node_list = []
+    for cate in tlist:
+        node = {'node':0,'subnodes':[],'test_cases':[]}
+        node['node'] = cate
+        node['test_cases'] = TestCasePlan.objects.values(
+                                'case',
+                                'case__create_date', 'case__summary',
+                                'case__category__name',
+                                'case__priority__value',
+                                'case__author__username'
+                            ).filter(
+                                plan_id=plan,
+                                case__case_status=TestCaseStatus.objects.filter(name='CONFIRMED').first().pk,
+                                case__category_id=cate.id
+                            )
+        if (cate.id != default.id):
+            node_list.append(node)
+            if (cate.parent_category.id == default.id):
+                treedata.append(node)
+    #print(node_list)
+    addSubNode(plan, treedata, node_list)
+    return treedata
 
+def addSubNode(plan,treedata,tlist):
+    if ((len(treedata) == 0)):
+        print("No Sub_nodes found")
+        return 1
+    for node in treedata:
+        sub_list = []
+        for cate in tlist:
+            if cate['node'].parent_category.id == node['node'].id: 
+                sub_list.append(cate)
+        if(len(sub_list) == 0):
+            continue
+        node['subnodes'] = sub_list
+        if addSubNode(plan, node['subnodes'], tlist):
+            continue
 
 @require_GET
 def cc(request, run_id):  # pylint: disable=invalid-name

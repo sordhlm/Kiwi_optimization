@@ -123,7 +123,7 @@ def new_category(request, template_name='category/new.html'):
         'form': form
     }
     return render(request, template_name, context_data)
-    pass
+
 
 @permission_required('testcases.add_testcase')
 def new(request, template_name='case/edit.html'):

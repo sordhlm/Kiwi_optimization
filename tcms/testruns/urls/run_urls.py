@@ -19,6 +19,8 @@ urlpatterns = [
 
     url(r'^(?P<run_id>\d+)/assigncase/$', views.AddCasesToRunView.as_view(),
         name='add-cases-to-run'),
+    url(r'^(?P<run_id>\d+)/assigncase-tree/$', views.AddTreeCasesToRunView.as_view(),
+        name='add-tree-cases-to-run'),
 
     url(r'^(?P<run_id>\d+)/cc/$', views.cc, name='testruns-cc'),
     url(r'^(?P<run_id>\d+)/update/$', views.update_case_run_text,
@@ -30,4 +32,7 @@ urlpatterns = [
         name='testruns-runcase_then_update_status'),
     url(r'^case-run-update-node/$', views.UpdateCaseNodeView.as_view(),
         name='testruns-update_caserun_node'),
+    url(r'^export_run_report_pdf/$', views.CustomPDF.as_view(), name='testruns-genpdf'),
+    #url(r'^export_run_report_pdf/$', PDFTemplateView.as_view(template_name='run/report.html',
+    #                                       filename='my_pdf.pdf'), name='pdf'),
 ]

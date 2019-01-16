@@ -639,18 +639,17 @@ Nitrate.TestPlans.SearchCase.on_load = function() {
     });
   });
 
-  if (jQ('#id_table_cases').length) {
-    jQ('#id_table_cases').DataTable({
-      "aoColumnDefs":[{ "bSortable":false, "aTargets":[ 'nosort' ] }],
-      "aaSorting": [[ 1, "desc" ]],
-      "sPaginationType": "full_numbers",
-      "bFilter": false,
-      "aLengthMenu": [[10, 20, 50, -1], [10, 20, 50, "All"]],
-      "iDisplayLength": 20,
-      "bProcessing": true
-    });
-  }
-
+  //if (jQ('#id_table_cases').length) {
+  //  jQ('#id_table_cases').DataTable({
+  //    "aoColumnDefs":[{ "bSortable":false, "aTargets":[ 'nosort' ] }],
+  //    "aaSorting": [[ 1, "desc" ]],
+  //    "sPaginationType": "full_numbers",
+  //    "bFilter": false,
+  //    "aLengthMenu": [[10, 20, 50, -1], [10, 20, 50, "All"]],
+  //    "iDisplayLength": 20,
+  //    "bProcessing": true
+  //  });
+  //}
   if (jQ("#id_checkbox_all_cases").length) {
     bindSelectAllCheckbox(jQ('#id_checkbox_all_cases')[0], jQ('#id_form_cases')[0], 'case');
   }

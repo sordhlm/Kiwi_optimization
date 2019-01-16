@@ -5,7 +5,7 @@ from modernrpc.core import rpc_method, REQUEST_KEY
 from tcms.core.utils import form_errors_to_list
 from tcms.management.models import Tag
 from tcms.testplans.models import TestPlan
-from tcms.testcases.models import TestCase, TestCasePlan
+from tcms.testcases.models import TestCase, TestCasePlan, Category
 
 from tcms.xmlrpc.forms import EditPlanForm, NewPlanForm
 from tcms.xmlrpc.decorators import permissions_required
@@ -253,3 +253,15 @@ def remove_case(plan_id, case_id):
         :raises: PermissionDenied if missing *testcases.delete_testcaseplan* permission
     """
     TestCasePlan.objects.filter(case=case_id, plan=plan_id).delete()
+
+@rpc_method(name='TestPlan.filter')
+def filter(query):  # pylint: disable=redefined-builtin
+    results = []
+    clist = TestCasePlan.objects.filter(**query).distinct()
+    for plan in clist:
+        serialized_case = plan.case.serialize()
+        serialized_case['parent_category'] = str(plan.case.category.parent_category.name);
+        serialized_case['parent_category_id'] = str(plan.case.category.parent_category.id);
+        serialized_case['text'] = plan.case.latest_text().serialize()
+        results.append(serialized_case)
+    return results

@@ -62,7 +62,6 @@ $(document).ready(function() {
         var genTreeView = function(data) {
             var treedata = [];
             var node_list = [];
-            var max_parent = 1;
             var max_depth = 10;
             var default_id = 0;
             data.forEach(function(element) {
@@ -74,25 +73,10 @@ $(document).ready(function() {
                 if(node.text == "--default--"){
                     default_id = node.id
                 }
-                if(node.parent_id > max_parent){
-                    max_parent = node.parent_id;
-                }
             })
             treedata = node_list.filter(function(element) {
                 return (element.parent_id == default_id && element.id != default_id);
             });
-            //if (max_parent > 1){
-            //    for(var i = 2;i <= max_parent; i++){
-            //        sub_list = node_list.filter(function(element) {
-            //            return (element.parent_id == i);
-            //        });
-            //        if (Number(sub_list) != 0){
-            //            sub_list.forEach(function(element){
-            //                addSubNode(treedata,element);
-            //            });
-            //        }
-            //    }
-            //}
             addSubNode(treedata,node_list);
 
             tree = $('#tree').treeview({    

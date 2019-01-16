@@ -7,7 +7,8 @@ from modernrpc.core import rpc_method, REQUEST_KEY
 from tcms.core.utils import form_errors_to_list
 from tcms.management.models import Tag
 from tcms.management.models import Component
-from tcms.testcases.models import TestCase, Category
+from tcms.testcases.models import TestCase, Category, TestCaseStatus, TestCasePlan
+from tcms.testplans.models import TestPlan
 from tcms.xmlrpc.forms import UpdateCaseForm, NewCaseForm
 
 from tcms.xmlrpc.decorators import permissions_required
@@ -313,23 +314,81 @@ def filter(query):  # pylint: disable=redefined-builtin
         if key == "category":
             findAllSubCategory(query[key],cate_list)
     for cate in cate_list:
-        for case in TestCase.objects.filter(category=cate).distinct():
+        for case in TestCase.objects.filter(category=cate["cid"]).distinct():
             serialized_case = case.serialize()
             serialized_case['text'] = case.latest_text().serialize()
             results.append(serialized_case)
     return results
 
-def findAllSubCategory(id, clist):
+#def findAllSubCategory(id, clist):
+#    catelist = []
+#    catelist = Category.objects.filter(parent_category = id)
+#    if catelist:
+#        for cate in catelist:
+#            cate_s = cate.serialize()
+#            clist.append(cate_s['id'])
+#            findAllSubCategory(cate_s['id'],clist)
+#    else:
+#        #print("no cate found")
+#        return 1
+
+def findAllSubCategory(id, clist, plan_id=0, callback=None):
     catelist = []
     catelist = Category.objects.filter(parent_category = id)
     if catelist:
         for cate in catelist:
-            cate_s = cate.serialize()
-            clist.append(cate_s['id'])
-            findAllSubCategory(cate_s['id'],clist)
+            cate_s = genTreeElement(cate,1)
+            clist.append(cate_s)
+            if callback:
+                callback(cate, plan_id, clist)
+            findAllSubCategory(cate.id, clist, plan_id, callback)
     else:
         #print("no cate found")
-        return 0
+        return 1
+def addCaseforAssign(cate, plan_id, clist):
+    status_id = TestCaseStatus.objects.filter(name='CONFIRMED').first().pk
+    #print("addCaseforAssign: cate:%s"%cate.name)
+    case_l = TestCasePlan.objects.filter(
+                plan_id=plan_id, case__category_id=cate.id, case__case_status=status_id)
+    #print("addCaseforAssign: cate:%s, case_num:%d"%(cate.name,len(case_l)))
+    if len(case_l):
+        for plan in case_l:
+            clist.append(genTreeElement(plan.case,0))
+            
+def genTreeElement(obj, isCate):
+    element = {}
+    if isCate:
+        element["isCate"] = 1
+        element["name"] = obj.name
+        element["id"] = obj.id
+        element["pid"] = obj.parent_category.id
+        element["depth"] = 1
+        element["auth"] = ""
+        element["priority"] = ""
+        if "--default--" in obj.parent_category.name:
+            element["depth"] = 0
+    else:
+        element["isCate"] = 0
+        element["id"] = obj.case_id
+        element["pid"] = obj.category.id
+        element["name"] = obj.summary
+        element["auth"] = obj.author.username
+        element["priority"] = obj.priority.value
+    return element
+
+@rpc_method(name='TestCase.assigncase')
+def assigncase(plan_id):
+    tree_l = []
+    cate_l = []
+    status_id = TestCaseStatus.objects.filter(name='CONFIRMED').first().pk
+    product_id = TestPlan.objects.filter(plan_id = plan_id).first().pk
+    #print(product_id)
+    #case_l = TestCasePlan.objects.filter(plan_id=plan_id, case__case_status=status_id)
+    default_cate = Category.objects.filter(product_id = product_id, name="--default--").first()
+    #print(default_cate)
+    findAllSubCategory(default_cate.pk, cate_l, plan_id, callback = addCaseforAssign)
+    #print(cate_l)
+    return cate_l 
 
 @permissions_required('testcases.change_testcase')
 @rpc_method(name='TestCase.update')

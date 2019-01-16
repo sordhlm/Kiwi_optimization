@@ -1,7 +1,19 @@
 {% load comments %}
 {% load report_tags %}
 {% load static %}
-
+<link rel="stylesheet" href="{% static 'patternfly/dist/css/patternfly.min.css' %}">
+<link rel="stylesheet" href="{% static 'patternfly/dist/css/patternfly-additions.css' %}">
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="{% static 'patternfly/dist/js/patternfly.min.js' %}"></script>
+<link rel="stylesheet" href="{% static 'bootstrap/dist/css/bootstrap.min.css' %}">
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/run_report_actions.js' %}"></script>
+<script type="text/javascript" language="javascript" charset="utf-8">
+	jQuery.noConflict();
+	var jQ = jQuery.noConflict();
+	// Top level namespace
+	window.Nitrate = {};
+</script>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
@@ -15,12 +27,16 @@
 	<div class="report_title">
 	Test Execution Report
 	<div class="report_sub_title"><a href='{% url "testruns-get" test_run.run_id %}'>[{{ test_run.run_id }}] {{ test_run.summary }}</a></div></div>
+	<div class="export content" style="width:99%; padding-left: 20px">
+  		<strong style="display:none">Test Report Downloading</strong> <div id="spin"></div> 
+  		<button type="button" id="export_report_to_pdf" class="btn btn-sm btn-info" align="right" style="float:right">Export PDF Report</button>
+	</div>
 	<div class="report_content">
 	<div id="content">
 		<div class="listinfo_content" style="float:left; width:95%">
 			<div class="leftlistinfo">
 				<div class="listinfo">
-					<span class="title">Test Plan:</span>{{ test_run.plan.plan_id }}:{{ test_run.plan.name }}
+					<span class="title" style="font_size: 22px">Test Plan:</span>{{ test_run.plan.plan_id }}:{{ test_run.plan.name }}
 				</div>
 				<div class="listinfo">
 					<span class="title">Product Version:</span>{{ test_run.product_version }}
@@ -52,6 +68,35 @@
 			<div class="clear"></div>
 		</div>
 		<div class="clear"></div>
+		<table class="list border-bottom" cellpadding="0" cellspacing="0" border="0"  id="id_table_report" >
+			<thead>
+				<tr>
+					<th align="left" width="100">Descript</th>
+					<th align="left" width="100">Count</th>
+					<th align="left">Rate</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr class="odd">
+					<td valign="top">Summary</td>
+					<td valign="top">{{ test_case_runs_count }}</td>
+					<td valign="top">
+					<div class="progress">
+					  <div class="progress-bar progress-bar-success" style="width:{{summary_stats.pass|percentage:test_case_runs_count }}">{{summary_stats.pass|percentage:test_case_runs_count }} Pass
+					  </div>
+					  <div class="progress-bar progress-bar-danger" style="width: {{summary_stats.fail|percentage:test_case_runs_count }}">
+					    {{summary_stats.fail|percentage:test_case_runs_count }} Fail
+					  </div>
+					  <div class="progress-bar progress-bar-warning progress-bar-striped" style="width: {{summary_stats.block|percentage:test_case_runs_count }}">
+					    {{summary_stats.block|percentage:test_case_runs_count }} Block
+					  </div>
+					  <div class="progress-bar progress-bar-info" style="width: {{summary_stats.idle|percentage:test_case_runs_count }}">{{summary_stats.idle|percentage:test_case_runs_count }} Idle
+  						</div>
+					</div>
+					</td>
+				</tr>
+			</tbody>
+		</table>
 		<div class="table_noborder">
 			Manual Cases<span class="red">{{ mode_stats.manual|percentage:test_case_runs_count }}({{ mode_stats.manual }}/{{ test_case_runs_count }})</span>
 			Automated Cases<span class="red">{{ mode_stats.automated|percentage:test_case_runs_count }}({{ mode_stats.automated }}/{{ test_case_runs_count }})</span>
@@ -61,14 +106,14 @@
 		{% if test_case_runs %}
 		<table class="list border-1" cellpadding="0" cellspacing="0">
 			<tr>
-				<th class="widthID">Case-Run ID</th>
-				<th class="widthID">Case ID</th>
+				<th class="widthID" width="150">Case-Run ID</th>
+				<th class="widthID" width="150">Case ID</th>
 				<th>Summary</th>
 				<th width="100">Mode</th>
 				<th width="100">Tested by</th>
 				<th width="150">Category</th>
 				<th width="100">Status</th>
-				<th width="160" height="25px">Closed at</th>
+				<th width="260" height="25px">Closed at</th>
 			</tr>
 			{% for test_case_run in test_case_runs %}
 			<tr>
@@ -89,7 +134,7 @@
 					<a href="{{ bug.bug_url }}">{{ bug.bug_id }}</a>
 					{% endfor %}
 					{% endif %}
-
+					<!--
 					{% if test_case_run.user_comments %}
 					<h4 style='padding:0px;margin:0px'>Comments</h4>
 					<span class="notes" >
@@ -100,6 +145,7 @@
 						</ul>
 					</span> 
 					{% endif %}
+					-->
 
 					</td>
 			</tr>

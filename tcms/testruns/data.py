@@ -146,8 +146,14 @@ class TestCaseRunDataMixin:
         """
         idle_count = 0
         complete_count = 0
+        fail_count = 0
+        block_count = 0
+        pass_count = 0
         complete_status_names = TestCaseRunStatus.complete_status_names
         idle_status_names = TestCaseRunStatus.idle_status_names
+        failure_status_names = TestCaseRunStatus.failure_status_names
+        block_status_names = TestCaseRunStatus.block_status_names
+        pass_status_names = TestCaseRunStatus.pass_status_names
 
         for case_run in case_runs:
             status_name = case_run.case_run_status.name
@@ -156,4 +162,12 @@ class TestCaseRunDataMixin:
             elif status_name in complete_status_names:
                 complete_count += 1
 
-        return {'idle': idle_count, 'complete': complete_count}
+            if status_name in failure_status_names:
+                fail_count += 1
+            elif status_name in block_status_names:
+                block_count += 1
+            elif status_name in pass_status_names:
+                pass_count += 1
+
+        return {'idle': idle_count, 'complete': complete_count, \
+                'fail': fail_count, 'block': block_count, 'pass': pass_count}
