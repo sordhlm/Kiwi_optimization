@@ -71,7 +71,6 @@ $(document).ready(function() {
             },
             { data: "manager" },
             { data: "default_tester" },
-            { data: "product" },
             { data: "product_version"},
             { data: "build"},
             { data: "stop_date"},
