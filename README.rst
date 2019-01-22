@@ -88,12 +88,13 @@ Commercial support for Kiwi TCMS is available from
 levels info see http://MrSenko.com/.
 
 
-Optimize Version History:
-1. Add View Section in the home page for All cases
-2. Add API functions to support management of test cases in Excel
-3. Modify database models to support multiple category, and generate tree view in View Section
-4. Add progress bar in test report
-5. Add Export button in test report to export html report to PDF
-6. Change table to treegrid when add cases to run
-7. Add Redmine Bugsystem
-8. Bug fixed
+Optimize Version History
+-------
+*1. Add View Section in the home page for All cases
+*2. Add API functions to support management of test cases in Excel
+*3. Modify database models to support multiple category, and generate tree view in View Section
+*4. Add progress bar in test report
+*5. Add Export button in test report to export html report to PDF
+*6. Change table to treegrid when add cases to run
+*7. Add Redmine Bugsystem
+*8. Bug fixed
