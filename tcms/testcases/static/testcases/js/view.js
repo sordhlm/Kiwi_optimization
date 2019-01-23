@@ -44,17 +44,17 @@ $(document).ready(function() {
     $('#btn_newcase').click(function() {
         window.location.href = '/cases/new';
     });
-    $('#btn_test').click(function() {
-        window.location.href = '/admin/testcases/category/add';
-        alert("done");
-        var node = $('#tree').treeview('getSelected');
-        add ={text: ""};
-        add.text = prompt("Please input section name","")
-        if (add.text){
-            $('#tree').treeview('addNode',[add,node]);
-        }
-    });
+    //$('#btn_test').click(function() {
+    //    window.location.href = '/admin/testcases/category/add';
+    //    var node = $('#tree').treeview('getSelected');
+    //    add ={text: ""};
+    //    add.text = prompt("Please input section name","")
+    //    if (add.text){
+    //        $('#tree').treeview('addNode',[add,node]);
+    //    }
+    //});
     $('#id_product').change(function() {
+        select_node = 0;
         var updateCategory = function(data) {
             updateSelect(data, '#id_category', 'id', 'name');
         }

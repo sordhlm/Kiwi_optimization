@@ -303,21 +303,39 @@ def filter(query):  # pylint: disable=redefined-builtin
         :rtype: list(dict)
     """
     results = []
-    for case in TestCase.objects.filter(**query).distinct():
-        serialized_case = case.serialize()
-        serialized_case['text'] = case.latest_text().serialize()
-        results.append(serialized_case)
-        #print(serialized_case)
-    
     cate_list = []
-    for key in query.keys():
-        if key == "category":
-            findAllSubCategory(query[key],cate_list)
-    for cate in cate_list:
-        for case in TestCase.objects.filter(category=cate["cid"]).distinct():
+    print(query)
+    if "category" in query.keys():
+        findAllSubCategory(query['category'],cate_list)
+        if len(cate_list):
+            for cate in cate_list:
+                for case in TestCase.objects.filter(category=cate["id"]).distinct():
+                    serialized_case = case.serialize()
+                    serialized_case['text'] = case.latest_text().serialize()
+                    results.append(serialized_case)
+        else:
+            for case in TestCase.objects.filter(**query).distinct():
+                serialized_case = case.serialize()
+                serialized_case['text'] = case.latest_text().serialize()
+                results.append(serialized_case)
+            
+    else:
+        for case in TestCase.objects.filter(**query).distinct():
             serialized_case = case.serialize()
             serialized_case['text'] = case.latest_text().serialize()
             results.append(serialized_case)
+        #print(serialized_case)
+    
+    #cate_list = []
+    #for key in query.keys():
+    #    if key == "category":
+    #        findAllSubCategory(query[key],cate_list)
+    ##print(cate_list)
+    #for cate in cate_list:
+    #    for case in TestCase.objects.filter(category=cate["id"]).distinct():
+    #        serialized_case = case.serialize()
+    #        serialized_case['text'] = case.latest_text().serialize()
+    #        results.append(serialized_case)
     return results
 
 #def findAllSubCategory(id, clist):
@@ -381,7 +399,7 @@ def assigncase(plan_id):
     tree_l = []
     cate_l = []
     status_id = TestCaseStatus.objects.filter(name='CONFIRMED').first().pk
-    product_id = TestPlan.objects.filter(plan_id = plan_id).first().pk
+    product_id = TestPlan.objects.filter(plan_id = plan_id).first().product.pk
     #print(product_id)
     #case_l = TestCasePlan.objects.filter(plan_id=plan_id, case__case_status=status_id)
     default_cate = Category.objects.filter(product_id = product_id, name="--default--").first()
