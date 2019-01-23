@@ -86,3 +86,15 @@ Support
 Commercial support for Kiwi TCMS is available from
 `Mr. Senko <http://MrSenko.com>`_. For more information, pricing and support
 levels info see http://MrSenko.com/.
+
+
+Optimize Version History
+-------
+* Add View Section in the home page for All cases
+* Add API functions to support management of test cases in Excel
+* Modify database models to support multiple category, and generate tree view in View Section
+* Add progress bar in test report
+* Add Export button in test report to export html report to PDF
+* Change table to treegrid when add cases to run
+* Add Redmine Bugsystem
+* Bug fixed
