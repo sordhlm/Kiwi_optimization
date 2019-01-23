@@ -92,8 +92,9 @@ def filter(query=None):  # pylint: disable=redefined-builtin
     if query is None:
         query = {}
 
+    print(query)
     test_plans = TestPlan.objects.filter(**query).distinct()
-
+    print(test_plans)
     results = []
     for plan in test_plans:
         serialized_plan = plan.serialize()
@@ -254,14 +255,14 @@ def remove_case(plan_id, case_id):
     """
     TestCasePlan.objects.filter(case=case_id, plan=plan_id).delete()
 
-@rpc_method(name='TestPlan.filter')
-def filter(query):  # pylint: disable=redefined-builtin
-    results = []
-    clist = TestCasePlan.objects.filter(**query).distinct()
-    for plan in clist:
-        serialized_case = plan.case.serialize()
-        serialized_case['parent_category'] = str(plan.case.category.parent_category.name);
-        serialized_case['parent_category_id'] = str(plan.case.category.parent_category.id);
-        serialized_case['text'] = plan.case.latest_text().serialize()
-        results.append(serialized_case)
-    return results
+#@rpc_method(name='TestPlan.filter')
+#def filter(query):  # pylint: disable=redefined-builtin
+#    results = []
+#    clist = TestCasePlan.objects.filter(**query).distinct()
+#    for plan in clist:
+#        serialized_case = plan.case.serialize()
+#        serialized_case['parent_category'] = str(plan.case.category.parent_category.name);
+#        serialized_case['parent_category_id'] = str(plan.case.category.parent_category.id);
+#        serialized_case['text'] = plan.case.latest_text().serialize()
+#        results.append(serialized_case)
+#    return results
