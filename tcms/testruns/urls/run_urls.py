@@ -33,6 +33,7 @@ urlpatterns = [
     url(r'^case-run-update-node/$', views.UpdateCaseNodeView.as_view(),
         name='testruns-update_caserun_node'),
     url(r'^export_run_report_pdf/$', views.CustomPDF.as_view(), name='testruns-genpdf'),
+    url(r'^update_fw/$', views.updateFW, name='testruns-updatefw'),
     #url(r'^export_run_report_pdf/$', PDFTemplateView.as_view(template_name='run/report.html',
     #                                       filename='my_pdf.pdf'), name='pdf'),
 ]

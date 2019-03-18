@@ -159,6 +159,8 @@ PUBLIC_VIEWS = [
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~ DANGER: Don't change the settings below!
 
+RUNNER = "REST_API_RUN"
+
 SITE_ID = 1
 
 KIWI_VERSION = tcms.__version__

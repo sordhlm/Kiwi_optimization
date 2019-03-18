@@ -249,6 +249,48 @@ class TestPlan(TCMSActionModel):
 
         return tp_dest
 
+def stats_plan_status(self):
+
+        rows = TestCaseRun.objects.filter(
+            run=self.pk
+        ).values(
+            'case_run_status'
+        ).annotate(status_count=Count('case_run_status'))
+
+        caserun_statuses_subtotal = dict((status.pk, [0, status])
+                                         for status in case_run_statuses)
+
+        for row in rows:
+            caserun_statuses_subtotal[row['case_run_status']][0] = row['status_count']
+
+        complete_count = 0
+        failure_count = 0
+        caseruns_total_count = 0
+
+        for _status_pk, total_info in caserun_statuses_subtotal.items():
+            status_caseruns_count, caserun_status = total_info
+            status_name = caserun_status.name
+
+            caseruns_total_count += status_caseruns_count
+
+            if status_name in TestCaseRunStatus.complete_status_names:
+                complete_count += status_caseruns_count
+            if status_name in TestCaseRunStatus.failure_status_names:
+                failure_count += status_caseruns_count
+
+        # Final calculation
+        complete_percent = .0
+        if caseruns_total_count:
+            complete_percent = complete_count * 100.0 / caseruns_total_count
+        failure_percent = .0
+        if complete_count:
+            failure_percent = failure_count * 100.0 / caseruns_total_count
+
+        return TestCaseRunStatusSubtotal(caserun_statuses_subtotal,
+                                         caseruns_total_count,
+                                         complete_percent,
+                                         failure_percent,
+                                         complete_percent - failure_percent)
 
 class TestPlanTag(models.Model):
     tag = models.ForeignKey('management.Tag', on_delete=models.CASCADE)

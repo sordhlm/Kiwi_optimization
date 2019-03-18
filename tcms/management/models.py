@@ -33,6 +33,7 @@ class Product(TCMSActionModel):
     name = models.CharField(unique=True, max_length=64)
     classification = models.ForeignKey(Classification, on_delete=models.CASCADE)
     description = models.TextField(blank=True)
+    bug_system_product = models.CharField(max_length=255, null=True)
 
     def __str__(self):
         return self.name

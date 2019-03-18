@@ -2,10 +2,60 @@
 {% load report_tags %}
 {% load static %}
 {% block subtitle %}Reporting - {{ product }}{% endblock %}
-
+{% block custom_stylesheet %}
+<link rel="stylesheet" href="{% static 'bootstrap/dist/css/bootstrap.min.css' %}">
+{% endblock %}
+{% block custom_javascript %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+<script type="text/javascript" src="{% static 'js/run_report_actions.js' %}"></script>
+<script type="text/javascript">
+    var total_plan_count = {{ total_plan_count | safe }};
+    var bug_trend = {{ bug_trend | safe }}
+</script>
+{% endblock %}
 {% block contents %}
 <div id="content">
 	{% include 'report/nav.html' %}
+	<canvas id="myChart1" style="height:400px; width:1000px;margin:50px; float:left"> </canvas>
+	<canvas id="myChart2" style="height:400px; width:600px;margin:50px; float:right"> </canvas>
+	<canvas id="myChart3" style="height:400px; width:1800px;margin:50px;"> </canvas>
+	<table class="list border-bottom" id="id_table_report" style="width:98%;margin-left:20px">
+		<thead>
+			<tr>
+				<th align="left" width="100">TestPlan</th>
+				<th align="left" width="100">Number</th>
+				<th align="left">Rate</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for case_count in single_plan_count %}
+			<tr class="odd">
+				<td valign="top">{{case_count.name}}</td>
+				<td valign="top">{{ case_count.TOTAL }}</td>
+				<td valign="top">
+				<div class="progress">
+				  <div class="progress-bar progress-bar-success" style="width:
+				    {{case_count.PASSED|percentage:case_count.TOTAL}}; background:#5cb85c">
+				  	{{case_count.PASSED|percentage:case_count.TOTAL}} Pass
+				  </div>
+				  <div class="progress-bar progress-bar-danger" style="width: 
+				    {{case_count.FAILED|percentage:case_count.TOTAL}}; background: #d9534f;">
+				    {{case_count.FAILED|percentage:case_count.TOTAL}} Fail
+				  </div>
+				  <div class="progress-bar progress-bar-warning" style="width: 
+				    {{case_count.BLOCKED|percentage:case_count.TOTAL}}; background: #f0ad4e;">
+				    {{case_count.BLOCKED|percentage:case_count.TOTAL}} Block
+				  </div>
+				  <div class="progress-bar progress-bar-info" style="width: 
+				    {{case_count.IDLE|percentage:case_count.TOTAL}}; background: #5bc0de;">
+				    {{case_count.IDLE|percentage:case_count.TOTAL}} Idle
+  				  </div>
+				</div>
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
 	<div class="Detailform border-1" style="background:#f1f1f1">
 		<div class="report">
 			<table class="report_tb" collspan="0" cellspacing="0" border="0">
@@ -69,5 +119,6 @@
 		</div>
 	
 	</div>
+
 </div><!--content over -->
 {% endblock %}

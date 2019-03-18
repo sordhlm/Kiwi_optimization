@@ -168,11 +168,44 @@ jQ(function() {
 				</div>
 			</div>
 		<div class="clear"></div>
+
 	</div>
 
 	{% include 'run/status_statistics.html' %}
 
 	<div class="clear"></div>
+	</div>
+	<div class="node_list" style="margin-left:60%">
+		<form id="form_updatefw" class="form-horizontal" method="POST">
+			<span>Update FW: </span>
+			<input type="text" id="bin_file" name="bin_file">
+			<button type="submit" id="btn_upload">Update</button>
+		</form>
+		<div class="nodeinfo">
+			<table class="list_node" id="id_node" cellspacing="0" cellspan="0">
+				<thead>
+					<th width="20">
+						<input id="id_check_all_node_button" type="checkbox" title="Select all nodes/Select none nodes" />
+					</th>
+					<th width="140">Node </th>
+					<th width="50" style='text-align:center'>Status</th>
+				</thead>
+				<tbody>
+					{% for node in choosen_nodes %}
+					<tr class="{% cycle 'odd' 'even' %}">
+						<td>
+							<input type="checkbox" name="node" value="{{ node }}" title="Select/Unselect" />
+						</td>
+						<td class="case_title expandable">{{node}}
+						</td>
+						<td class="expandable center">
+							<img border="1" alt="" class="icon_status btn_idle" />
+						</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
 	</div>
 	<div class="Detailform border-1">
 		{% include 'run/get_case_runs.html' %}

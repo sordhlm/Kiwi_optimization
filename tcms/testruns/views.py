@@ -36,6 +36,8 @@ from tcms.testruns.data import TestCaseRunDataMixin
 from tcms.testruns.forms import NewRunForm, SearchRunForm, BaseRunForm
 from tcms.testruns.models import TestRun, TestCaseRun, TestCaseRunStatus
 from tcms.issuetracker.types import IssueTrackerType
+# from tcms.rest_client.rest_client import RestClient
+from production_rest_client.rest_client import RestClient
 from wkhtmltopdf.views import PDFTemplateView
 
 class CustomPDF(PDFTemplateView, TestCaseRunDataMixin):
@@ -239,7 +241,8 @@ def open_run_get_case_runs(request, run):
                      'case__is_automated_proposed',
                      'case__is_automated',
                      'case__priority',
-                     'case__category__name')
+                     'case__category__name',
+                     'node__ip')
     # Get the bug count for each case run
     # 5. have to show the number of bugs of each case run
     tcrs = tcrs.annotate(num_bug=Count('case_run_bug', distinct=True))
@@ -314,12 +317,16 @@ def get(request, run_id, template_name='run/get.html'):
     # 7. get tags
     # Get the list of testcases belong to the run
     test_cases = []
+    node_list = []
     for test_case_run in test_case_runs:
         test_cases.append(test_case_run.case_id)
+        if test_case_run.node:
+            if (test_case_run.node.ip is not "--default--"):
+                node_list.append(test_case_run.node.ip)
     tags = Tag.objects.filter(case__in=test_cases).values_list('name', flat=True)
     tags = list(set(tags))
     tags.sort()
-
+    
     def walk_case_runs():
         """Walking case runs for helping rendering case runs table"""
         priorities = dict(Priority.objects.values_list('pk', 'value'))
@@ -341,7 +348,7 @@ def get(request, run_id, template_name='run/get.html'):
                    priorities.get(case_run.case.priority_id),
                    case_run_status[case_run.case_run_status_id],
                    comments_subtotal.get(case_run.pk, 0))
-
+    
     context_data = {
         'test_run': test_run,
         'from_plan': request.GET.get('from_plan', False),
@@ -354,6 +361,7 @@ def get(request, run_id, template_name='run/get.html'):
         'case_own_tags': tags,
         'bug_trackers': BugSystem.objects.all(),
         'nodes': Node.objects.all(),
+        'choosen_nodes': set(node_list)
     }
     return render(request, template_name, context_data)
 
@@ -618,6 +626,18 @@ def bug(request, case_run_id, template_name='run/execute_case_run.html'):
 
     return func()
 
+@require_POST
+def updateFW(request):
+    file = request.POST.get("file")
+    nodes = request.POST.getlist("list[]")
+    print("**Start Update FW ...%s"%file)
+    print(nodes)
+    result = {}
+    for node in nodes:
+        cli = RestClient(node)
+        ret = cli.operation.upgrade(file)
+        result[node] = 'ok' if ret == 200 else 'fail'
+    return JsonResponse({'result': result})
 
 @require_POST
 def clone(request, run_id):
@@ -1056,9 +1076,27 @@ class RunCaseThenUpdateStatus(View):
         for caserun_pk in object_ids:
             test_case_run = get_object_or_404(TestCaseRun, pk=int(caserun_pk))
             print("case_id:%d"%test_case_run.case.case_id)
-            #test_case_run.case_run_status_id = status_id
-            #test_case_run.tested_by = request.user
-            #test_case_run.close_date = datetime.now()
-            #test_case_run.save()
-        time.sleep(5)
+            # test_case_run.tested_by = request.user
+            # test_case_run.close_date = datetime.now()
+            # test_case_run.save()
+            host = test_case_run.node.ip
+            test_case_script = test_case_run.case.script
+            # print("struct is: {}".format(test_case_run._state.fields_cache["node"].__dict__))
+            if test_case_script != "" and host != "":
+                if settings.RUNNER == "REST_API_RUN":
+                    client = RestClient(host)
+                    try:
+                        client.test_case.run(test_case = test_case_script, mode = "async")
+                    except Exception as e:
+                        test_case_run.case_run_status_id = 7
+                        test_case_run.notes = e
+                        # add_comment(test_case_run, q)
+                        test_case_run.save()
+                        print("case execute fault, error message: {}".format(e))
+                    else:
+                        print("will run case on node(ip): {}\ncase script: {}".format(host, test_case_script))
+                else:
+                    print("Runner not ready")
+            else:
+                print("Run case Error. please check node(ip) or case script")
         return JsonResponse({'rc': 0, 'response': 'ok'})

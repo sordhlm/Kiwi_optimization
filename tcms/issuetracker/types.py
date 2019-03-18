@@ -13,7 +13,7 @@ import jira
 import github
 import bugzilla
 import redminelib
-
+import datetime
 from django.conf import settings
 
 from tcms.issuetracker import bugzilla_integration
@@ -168,6 +168,36 @@ class Redmine(IssueTrackerType):
             url += '/'
 
         return url+'issues/'+str(redmine_issue.id), redmine_issue.id
+
+    def gen_bug_trend_data(self, values):
+        issues = self.rpc.issue.filter(project_id=values['product'], sort='id', status_id='*')
+        now = datetime.datetime.now().date()
+        date_label = []
+        total_bugs = []
+        open_bugs = []
+        close_bugs = []
+        date = issues[0].created_on.date()
+        while date < now:
+            bopen = 0
+            bclose = 0
+            btotal = 0
+            for issue in issues:
+                if issue.created_on.date() <= date:
+                    btotal += 1
+                    if hasattr(issue, "closed_on"):
+                        if (issue.closed_on.date() <= date):
+                            bclose += 1
+                elif issue.created_on.date() > date:
+                    break
+            bopen = btotal - bclose
+            date_label.append(date.strftime('%Y-%m-%d'))
+            total_bugs.append(btotal)
+            close_bugs.append(bclose)
+            open_bugs.append(bopen)
+            date = date + datetime.timedelta(days=eval(values['delta']))
+        return {'date': date_label, 'total':total_bugs, 'open':open_bugs, 'close':close_bugs}
+
+
 
 class Bugzilla(IssueTrackerType):
     """

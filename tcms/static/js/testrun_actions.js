@@ -41,7 +41,40 @@ Nitrate.TestRuns.Details.on_load = function() {
       }
     }
   });
+  jQ('#id_check_all_node_button').bind('click', function(m) {
+      toggleAllCheckBoxes(this, 'id_node', 'node');
+  });
+  jQ('#form_updatefw').submit(function(){
+    var file = jQ("#bin_file").val()
+    console.debug(file);
+    var node_list = serializeNodeFromInputList(jQ('#id_node')[0])
+    jQ.ajax({
+        type:"POST",
+        data: {"file":file,"list":node_list},
+        url: "/run/update_fw/", 
+        success: function(result, statues, xml){
+            stat = result['result']
+            console.debug(stat)
+            jQ('#form_updatefw').parent().find('.case_title').each(function(index){
+                var ip = jQ(this).text().replace(/\t|\n/g,"")
+                var icon = jQ(this).parent().find('.icon_status')
+                console.debug(ip)
 
+                if(stat[ip] == "ok"){
+                    icon.removeClass('btn_idle');
+                    icon.addClass('btn_passed');
+                } else if(stat[ip] == "fail") {
+                    icon.removeClass('btn_idle');
+                    icon.addClass('btn_failed');
+                }
+            });
+        },
+        error: function(){
+            alert("false");
+        }      
+    });
+    return false;
+  });
   // Observe the case run toggle and the comment form
   var toggle_case_run = function(e) {
     var c = jQ(this).parent(); // Container
@@ -241,11 +274,11 @@ Nitrate.TestRuns.ChooseRuns.on_load = function() {
 Nitrate.TestRuns.AssignCase.on_load = function() {
   if (jQ('#id_check_all_button').length) {
     jQ('#id_check_all_button').bind('click', function(m) {
-
+      console.debug("click_check_all");
       toggleAllCheckBoxes(this, 'id_table_cases', 'case');
     });
   }
- 
+  
   jQ('input[name="case"]').bind('click', function(t) {
     if (this.checked) {
       jQ(this).closest('tr').addClass('selection_row');
@@ -810,6 +843,23 @@ function serializeCaseRunFromInputList(table, name) {
   return returnobj_list;
 }
 
+function serializeNodeFromInputList(table, name) {
+  var elements;
+  if (typeof table === 'string') {
+    elements = jQ('#' + table).parent().find('input[name="node"]:checked');
+  } else {
+    elements = jQ(table).parent().find('input[name="node"]:checked');
+  }
+
+  var returnobj_list = [];
+  elements.each(function(i) {
+    if (typeof this.value === 'string') {
+      returnobj_list.push(this.value);
+    }
+  });
+  return returnobj_list;
+}
+
 function serialzeCaseForm(form, table, serialized) {
   if (typeof serialized !== 'boolean') {
     var serialized = true;
@@ -995,6 +1045,8 @@ function showCommentForm() {
 }
 
 jQ(document).ready(function(){
+  //jQ('#id_table_cases').treegrid();
+
   jQ('.btnBlueCaserun').mouseover(function() {
     jQ(this).find('ul').show();
   }).mouseout(function() {

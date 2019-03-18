@@ -111,6 +111,8 @@ Nitrate.TestPlans.Instance = {
 				<div class="title"><a href="/admin/testplans/testplan/{{ test_plan.pk }}/history/">View Edit History</a></div>
 			</div>
 		</div>
+		
+		{% include 'plan/status_statistics.html' %}
 		<div class="clear"></div>
 	</div>
 	<div id="plan_detail">

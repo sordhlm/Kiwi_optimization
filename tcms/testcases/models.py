@@ -32,7 +32,7 @@ class NoneText:
     create_date = datetime.now()
 
     @classmethod
-    def serialize(cls):
+    def serialize(cls, case_or_category = 0):
         return {}
 
 

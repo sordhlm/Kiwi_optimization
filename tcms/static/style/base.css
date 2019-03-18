@@ -710,7 +710,15 @@ ul.data_content_title li{ display:inline-block; margin-left:3px;}
 .list .right_panel{ border:1px solid #ccc; background:#fff; vertical-align:top; padding:10px;}
 .list .listGroupBlue{background:#C2DFFF; padding:0px 5px; color:#000000;}
 
+.list_node { width : 98%; table-layout:fixed; background:#fff;}
+.list_node thead{ border:0; }
+.list_node th { border-bottom : 0px solid #ccc; color:#000000; text-align:left; background:#235D9F url(../images/bg_th_list.png) repeat-x; padding:0px 0px 0px 5px; height:25px; line-height:25px; font-weight:normal;}
+.list_node th a{ color:#000; }
+.list_node td { border-top:1px solid #ccc; padding:3px 5px 2px 5px; height:23px; line-height:23px; word-wrap:break-word; }
+.list_node td p{line-height:16px; margin:0px;}
+.list_node td label{padding:0 0 0 3px;}
 
+#bin_file {width:70%;}
 #sort{ margin:2px 0px; color:#fff; }
 #sort a{ color:#fff; }
 #sort span{ margin-left:20px; height:25px; padding-top:4px; padding-bottom:4px; }

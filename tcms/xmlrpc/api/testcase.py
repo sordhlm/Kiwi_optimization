@@ -310,19 +310,19 @@ def filter(query):  # pylint: disable=redefined-builtin
         if len(cate_list):
             for cate in cate_list:
                 for case in TestCase.objects.filter(category=cate["id"]).distinct():
-                    serialized_case = case.serialize()
-                    serialized_case['text'] = case.latest_text().serialize()
+                    serialized_case = case.serialize(case_or_category = 1)
+                    serialized_case['text'] = case.latest_text().serialize(case_or_category = 1)
                     results.append(serialized_case)
         else:
             for case in TestCase.objects.filter(**query).distinct():
-                serialized_case = case.serialize()
-                serialized_case['text'] = case.latest_text().serialize()
+                serialized_case = case.serialize(case_or_category = 1)
+                serialized_case['text'] = case.latest_text().serialize(case_or_category = 1)
                 results.append(serialized_case)
             
     else:
         for case in TestCase.objects.filter(**query).distinct():
-            serialized_case = case.serialize()
-            serialized_case['text'] = case.latest_text().serialize()
+            serialized_case = case.serialize(case_or_category = 1)
+            serialized_case['text'] = case.latest_text().serialize(case_or_category = 1)
             results.append(serialized_case)
         #print(serialized_case)
     

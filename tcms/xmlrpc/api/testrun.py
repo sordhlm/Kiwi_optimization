@@ -195,8 +195,8 @@ def filter(query=None):  # pylint: disable=redefined-builtin
 
     if query is None:
         query = {}
-
-    return TestRun.to_xmlrpc(query)
+    result = TestRun.to_xmlrpc(query)
+    return result
 
 
 @permissions_required('testruns.change_testrun')

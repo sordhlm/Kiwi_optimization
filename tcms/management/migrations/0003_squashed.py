@@ -34,6 +34,16 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
+            name='Node',
+            fields=[
+                ('id', models.AutoField(db_column='node_id', primary_key=True)),
+                ('name', models.CharField(max_length=255, blank=True)),
+                ('ip', models.CharField(max_length=255, blank=True)),
+                ('description', models.TextField(blank=True)),
+            ],
+            bases=(models.Model, tcms.core.models.base.UrlMixin),
+        ),
+        migrations.CreateModel(
             name='Classification',
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),

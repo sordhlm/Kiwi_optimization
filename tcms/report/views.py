@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=too-many-ancestors
-
+import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
 from django.db.models import Count, OuterRef, Subquery
@@ -12,6 +12,8 @@ from django.views.generic import View
 from tcms.management.models import Priority
 from tcms.management.models import Product
 from tcms.testruns.models import TestRun, TestCaseRunStatus, TestCaseRun
+from tcms.testcases.models import TestCase, TestCasePlan, BugSystem
+from tcms.testplans.models import TestPlan
 from tcms.report.forms import TestingReportForm
 from tcms.report.forms import TestingReportCaseRunsListForm
 from tcms.report.data import CustomDetailsReportData
@@ -28,6 +30,7 @@ from tcms.report.data import TestingReportByPlanTagsDetailData
 from tcms.report.data import TestingReportCaseRunsData
 from tcms.report.forms import CustomSearchForm
 from tcms.search import remove_from_request_path
+from tcms.issuetracker.types import IssueTrackerType
 
 from .forms import CustomSearchDetailsForm
 
@@ -71,14 +74,81 @@ def overview(request, product_id, template_name='report/overview.html'):
         caserun_status_count[row['case_run_status__name']] = row['status_count']
         total += row['status_count']
     caserun_status_count['TOTAL'] = total
+    case_total = TestCase.objects.filter(category__product=product_id).count()
+    total_plans_tclist = {}
+    query = TestPlan.objects.filter(product=product_id).order_by("plan_id")
+
+    total_plans_cnt = []
+    single_plans_cnt = []
+
+    for i in range(len(query)):
+        plan_list = []
+        single_cnt = {}
+        total_cnt = {}
+        for j in range(0,i+1):
+            plan_list.append(query[j].plan_id)
+        plan_tclist = TestCaseRun.objects.filter(
+                    run__plan__in=plan_list).order_by("case_run_id").values()
+        total_cnt.update(calReportData(plan_tclist))
+        total_cnt['TOTAL'] = TestCasePlan.objects.filter(plan__in = plan_list).count()
+        plan_tclist = TestCaseRun.objects.filter(
+                    run__plan=query[i].plan_id).order_by("case_run_id").values()
+        single_cnt.update(calReportData(plan_tclist))
+        single_cnt['TOTAL'] = TestCasePlan.objects.filter(plan = query[i].plan_id).count()
+        single_cnt['name'] = query[i].name
+        total_cnt['name'] = query[i].name
+        single_cnt['IDLE'] = single_cnt['TOTAL'] - single_cnt['PASSED'] - \
+                                single_cnt['FAILED'] - single_cnt['BLOCKED']
+        total_cnt['IDLE'] = total_cnt['TOTAL'] - total_cnt['PASSED'] - \
+                                total_cnt['FAILED'] - total_cnt['BLOCKED']
+        total_plans_cnt.append(total_cnt)
+        single_plans_cnt.append(single_cnt)
+
+
+        bug_system = BugSystem.objects.get(pk=3)
+        tracker = IssueTrackerType.from_name(bug_system.tracker_type)(bug_system)
+        bug_trend = tracker.gen_bug_trend_data({'product':product.bug_system_product,'delta':'7'})
+        print(bug_trend)
 
     context_data = {
         'SUB_MODULE_NAME': 'overview',
         'product': product,
         'runs_count': runs_count,
         'case_run_count': caserun_status_count,
+        'case_total':case_total,
+        'total_plan_count':json.dumps(total_plans_cnt),
+        'single_plan_count':single_plans_cnt,
+        'bug_trend':json.dumps(bug_trend)
     }
     return render(request, template_name, context_data)
+
+def calReportData(tclist):
+    #{'id': 6, 'name': 'BLOCKED'}, 
+    #{'id': 7, 'name': 'ERROR'}, 
+    #{'id': 5, 'name': 'FAILED'}, 
+    #{'id': 1, 'name': 'IDLE'}, 
+    #{'id': 4, 'name': 'PASSED'}, 
+    #{'id': 3, 'name': 'PAUSED'}, 
+    #{'id': 2, 'name': 'RUNNING'}, 
+    #{'id': 8, 'name': 'WAIVED'}
+    length = len(tclist)-1
+    exist_tc = {}
+    pass_cnt = 0
+    fail_cnt = 0
+    block_cnt = 0
+
+    for i in range(length,-1,-1):
+        if(tclist[i]['case_id'] not in exist_tc):
+            if tclist[i]['case_run_status_id'] == 6:
+                block_cnt += 1
+                exist_tc[tclist[i]['case_id']] = 1
+            elif tclist[i]['case_run_status_id'] == 5:
+                fail_cnt += 1
+                exist_tc[tclist[i]['case_id']] = 1
+            elif tclist[i]['case_run_status_id'] == 4:
+                pass_cnt += 1
+                exist_tc[tclist[i]['case_id']] = 1
+    return {'PASSED':pass_cnt,'FAILED':fail_cnt,'BLOCKED':block_cnt}
 
 
 class ProductVersionReport(TemplateView, ProductVersionReportData):
@@ -422,7 +492,7 @@ class CustomDetailReport(CustomReport):
         case_runs = self._data.get_case_runs(build_ids, status_ids)
         bugs = self._data.get_case_runs_bugs(build_ids, status_ids)
         comments = self._data.get_case_runs_comments(build_ids, status_ids)
-
+        
         for case_run in case_runs.iterator():
             related_bugs = bugs.get(case_run.pk, ())
             related_comments = comments.get(case_run.pk, ())
@@ -431,12 +501,11 @@ class CustomDetailReport(CustomReport):
     def _report_data_context(self):
         data = {}
         form = self._get_search_form()
-
         if form.is_valid():
             summary_header_data = super(CustomDetailReport,
                                         self)._report_data_context()
             data.update(summary_header_data)
-
+            
             build_ids = []
             for build in data['builds']:
                 build_ids.append(build['build'])
@@ -444,10 +513,10 @@ class CustomDetailReport(CustomReport):
             status_matrix = walk_matrix_row_by_row(
                 self._data.generate_status_matrix(build_ids)
             )
-
+            
             status_ids = (TestCaseRunStatus.objects.get(name=TestCaseRunStatus.FAILED).pk,)
             failed_case_runs = self.read_case_runs(build_ids, status_ids)
-
+            
             status_ids = (TestCaseRunStatus.objects.get(name=TestCaseRunStatus.BLOCKED).pk,)
             blocked_case_runs = self.read_case_runs(build_ids, status_ids)
 
@@ -458,6 +527,7 @@ class CustomDetailReport(CustomReport):
             })
         else:
             data['report_errors'] = form.errors
+
 
         data['form'] = form
         return data
