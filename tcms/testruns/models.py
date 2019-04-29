@@ -239,7 +239,7 @@ class TestCaseRunStatus(TCMSActionModel):
     PASSED = 'PASSED'
     IDLE = 'IDLE'
 
-    complete_status_names = (PASSED, 'ERROR', FAILED, 'WAIVED')
+    complete_status_names = (PASSED, BLOCKED, FAILED)
     failure_status_names = ('ERROR', FAILED)
     idle_status_names = (IDLE,)
     block_status_names = (BLOCKED,)
@@ -288,6 +288,7 @@ class TestCaseRun(TCMSActionModel):
                              on_delete=models.CASCADE)
     case_run_status = models.ForeignKey(TestCaseRunStatus, on_delete=models.CASCADE)
     build = models.ForeignKey('management.Build', on_delete=models.CASCADE)
+    runkey = models.TextField(null=True, blank=True)
 
     class Meta:
         unique_together = ('case', 'run', 'case_text_version')
@@ -364,6 +365,56 @@ class TestCaseRun(TCMSActionModel):
         # NOTE: this returns the URL to the TestRun containing this TestCaseRun!
         return reverse('testruns-get', args=[self.run_id])
 
+    #{'id': 6, 'name': 'BLOCKED'}, 
+    #{'id': 7, 'name': 'ERROR'}, 
+    #{'id': 5, 'name': 'FAILED'}, 
+    #{'id': 1, 'name': 'IDLE'}, 
+    #{'id': 4, 'name': 'PASSED'}, 
+    #{'id': 3, 'name': 'PAUSED'}, 
+    #{'id': 2, 'name': 'RUNNING'}, 
+    #{'id': 8, 'name': 'WAIVED'}
+    def markPending(self, msg=''):
+        self.case_run_status = TestCaseRunStatus.objects.get(id=3)
+        self.notes = msg
+        self.save()
+
+    def markRunning(self, msg=''):
+        self.case_run_status = TestCaseRunStatus.objects.get(id=2)
+        self.notes = msg
+        self.save()
+
+    def markPass(self, msg=''):
+        self.case_run_status = TestCaseRunStatus.objects.get(id=4)
+        self.runkey = ""
+        self.notes = msg
+        self.save()
+
+    def markFail(self, msg=''):
+        self.case_run_status = TestCaseRunStatus.objects.get(id=5)
+        self.runkey = ""
+        self.notes = msg
+        self.save()
+
+    def markError(self, msg=''):
+        self.case_run_status = TestCaseRunStatus.objects.get(id=7)
+        self.runkey = ""
+        self.notes = msg
+        self.save()
+
+    def clearRunInfo(self):
+        self.runkey = ""
+        self.notes = ""
+        self.save()
+
+    def markResult(self, result):
+        print(result)
+        if 'kiwi_stat_id' in result:
+            self.case_run_status = TestCaseRunStatus.objects.get(id=result['kiwi_stat_id'])
+        if 'msg' in result:
+            self.notes = result['msg']
+        if 'key' in result:
+            self.runkey = result['key']
+        self.save()        
 
 class TestRunTag(models.Model):
     tag = models.ForeignKey('management.Tag', on_delete=models.CASCADE)

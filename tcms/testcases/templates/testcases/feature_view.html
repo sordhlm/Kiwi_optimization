@@ -22,18 +22,8 @@
         </div>
     </div>
 </div>
-
 <div class="container-fluid container-cards-pf">
-    <form class="form-vertical" method="get" style="height:400px;width:15%;float:left;">
-        <a href="{% url 'admin:testcases_category_add' %}" target="_blank">
-            <span class="pficon pficon pficon-add-circle-o">{% trans "Add Sections" %}</span>
-        </a>
-        <!--<button id="btn_test"  type="button" class="btn btn-default btn-lg">{% trans "Test" %}</button>-->
-        <div id="tree" style="background-color:#f1f1f1">
-        </div>
-    </form>
-
-    <form class="form-horizontal" method="get" style="float: right; margin:auto; width: 83%">
+    <form class="form-horizontal" method="get" style="float: right; margin:auto; width: 100%">
         <div class="form-group">
             <label class="col-md-1 col-lg-1" for="id_product">{% trans "Product" %}</label>
             <div class="col-md-3 col-lg-3">
@@ -45,23 +35,21 @@
                 </select>
             </div>
         </div>
-        <button id="btn_newcase"  type="button" class="btn btn-default btn-lg">{% trans "NewCase" %}</button>
+        <a href="{% url 'admin:management_component_add' %}" target="_blank">
+            <span class="pficon pficon pficon-add-circle-o">{% trans "Add Feature" %}</span>
+        </a>
     </form>
 
-    <div class="panel panel-default" style="margin-top: auto; float: right;  width: 83%">
+    <div class="panel panel-default" style="margin-top: auto; float: right;  width: 100%">
         <!-- Table HTML -->
         <table class="table table-striped table-bordered table-hover" id="resultsTable">
             <thead>
                 <tr>
                     <th>{% trans "ID" %}</th>
-                    <th>{% trans "Summary" %}</th>
-                    <th>{% trans "Author" %}</th>
-                    <th>{% trans "Default tester" %}</th>
-                    <th>{% trans "Automated" %}</th>
-                    <th>{% trans "Status" %}</th>
-                    <th>{% trans "Category" %}</th>
-                    <th>{% trans "Priority" %}</th>
-                    <th>{% trans "Created at" %}</th>
+                    <th>{% trans "Name" %}</th>
+                    <th>{% trans "Owner" %}</th>
+                    <th>{% trans "Tester" %}</th>
+                    <th>{% trans "Related Cases" %}</th>
                 </tr>
             </thead>
         </table>
@@ -78,5 +66,5 @@
 <script src="{% static 'js/jsonrpc.js' %}"></script>
 <script src="{% static 'js/utils.js' %}"></script>
 <script src="{% static 'js/pagination.js' %}"></script>
-<script src="{% static 'testcases/js/view.js' %}"></script>
+<script src="{% static 'testcases/js/feature_view.js' %}"></script>
 {% endblock %}

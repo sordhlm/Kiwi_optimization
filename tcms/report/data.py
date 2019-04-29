@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 from collections import defaultdict
 from itertools import groupby
 
@@ -111,6 +112,17 @@ class ProductBuildReportData:
             builds[row['build']] = row['total_count']
         return builds
 
+def distinct_query(query):
+    l_case = []
+    only_query = query.order_by("case_run_id")
+    for i in range(len(only_query)-1,-1,-1):
+        if only_query[i].case.case_id not in l_case:
+            #print("New case[run:%d, case:%d]"%(only_query[i].case_run_id, only_query[i].case.case_id))
+            l_case.append(only_query[i].case.case_id)
+        else:
+            #print("exclude case[run:%d, case:%d]"%(only_query[i].case_run_id, only_query[i].case.case_id))
+            only_query = only_query.exclude(case_run_id=only_query[i].case_run_id)
+    return only_query
 
 class ProductComponentReportData:
 
@@ -132,18 +144,27 @@ class ProductComponentReportData:
             }
         )
 
+
     @staticmethod
     def case_runs_count(component_id):
         subtotal = {}
         total = 0
-        query = TestCaseRun.objects.filter(
-            case__component=component_id
-        ).values(
+        only_query = TestCaseRun.objects.filter(
+            case__component=component_id, run__plan__start_date__lte=datetime.date.today()
+        )
+        query = distinct_query(only_query)
+        #print(query)
+        #for item in query:
+        #    print("runid:%d, status:%s"%(item.case_run_id, item.case_run_status))
+        query = query.values(
             'case_run_status__name'
         ).annotate(status_count=Count('case_run_status__name'))
-
+        #print(query)
         for row in query:
-            subtotal[row['case_run_status__name']] = row['status_count']
+            if row['case_run_status__name'] in subtotal:
+                subtotal[row['case_run_status__name']] += row['status_count']
+            else:
+                subtotal[row['case_run_status__name']] = row['status_count']
             total += row['status_count']
         subtotal['TOTAL'] = total
         return subtotal
@@ -157,9 +178,14 @@ class ProductComponentReportData:
         :type condition: dict
         """
         total = {}
-        query = TestCaseRun.objects.filter(
-            case__component__product=product_id
-        )
+        #query = TestCaseRun.objects.filter(
+        #    case__component__product=product_id, run__plan__start_date__lte=datetime.date.today()
+        #)
+        #print(query)
+        only_query = TestCaseRun.objects.filter(
+            case__component__product=product_id, run__plan__start_date__lte=datetime.date.today()
+        ).order_by("case_run_id")
+        query = distinct_query(only_query)
         if condition:
             query = query.filter(**condition)
         query = query.values('case__component').annotate(
@@ -465,6 +491,7 @@ class CustomDetailsReportData(CustomReportData):
         @return: queried case runs
         @rtype: L{QuerySet}
         """
+        
         return TestCaseRun.objects.filter(
             run__build__in=build_ids,
             case_run_status_id__in=status_ids

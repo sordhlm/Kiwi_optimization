@@ -127,6 +127,53 @@ class Category(TCMSActionModel):
         )
         return cate
 
+def genTreeElement(obj, isCate):
+    element = {}
+    if isCate:
+        element["isCate"] = 1
+        element["name"] = obj.name
+        element["id"] = obj.id
+        element["pid"] = obj.parent_category.id
+        element["depth"] = 1
+        element["auth"] = ""
+        element["priority"] = ""
+        if "--default--" in obj.parent_category.name:
+            element["depth"] = 0
+    else:
+        element["isCate"] = 0
+        element["id"] = obj.case_id
+        element["pid"] = obj.category.id
+        element["name"] = obj.summary
+        element["auth"] = obj.author.username
+        element["priority"] = obj.priority.value
+    return element
+
+def findAllSubCategory(id, clist, plan_id=0, callback=None):
+    catelist = []
+    catelist = Category.objects.filter(parent_category = id)
+    ret = 1
+    if catelist:
+        for cate in catelist: 
+            cate_s = genTreeElement(cate,1)
+            clist.append(cate_s)      
+            if callback:
+                ret = callback(cate, plan_id, clist)
+            findAllSubCategory(cate.id, clist, plan_id, callback)
+    else:
+        #print("no cate found")
+        return 1
+
+#def findAllSubCategory(cid, clist):
+#    catelist = []
+#    catelist = Category.objects.filter(parent_category = cid)
+#    if catelist:
+#        for cate in catelist:
+#            clist.append(cate.id)
+#            findAllSubCategory(cate.id, clist)
+#    else:
+#        #print("no cate found")
+#        return 1
+
 class TestCase(TCMSActionModel):
     history = KiwiHistoricalRecords()
 
@@ -259,8 +306,7 @@ class TestCase(TCMSActionModel):
         if query.get('tag__name__in'):
             queryset = queryset.filter(tag__name__in=query['tag__name__in'])
 
-        if query.get('category'):
-            queryset = queryset.filter(category__name=query['category'].name)
+
 
         if query.get('priority'):
             queryset = queryset.filter(priority__in=query['priority'])
@@ -282,6 +328,12 @@ class TestCase(TCMSActionModel):
 
         if query.get('product'):
             queryset = queryset.filter(category__product=query['product'])
+            if query.get('category'):
+                clist = []
+                cate = Category.objects.filter(product=query['product'],name=query['category'].name)[0]
+                findAllSubCategory(cate.pk, clist)
+                id_list = [cate['id'] for cate in clist]
+                queryset = queryset.filter(category_id__in=id_list)
 
         if query.get('component'):
             queryset = queryset.filter(component=query['component'])

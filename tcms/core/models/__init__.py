@@ -28,9 +28,9 @@ class TCMSActionModel(models.Model, UrlMixin):
         serializer = XMLRPCSerializer(queryset=cls.objects.filter(**query))
         return serializer.serialize_queryset()
 
-    def serialize(self, case_or_category = 0):
+    def serialize(self):
         """
         Convert the model for XMLPRC
         """
         serializer = XMLRPCSerializer(model=self)
-        return serializer.serialize_model(case_or_category)
+        return serializer.serialize_model()

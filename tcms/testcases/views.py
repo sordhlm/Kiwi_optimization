@@ -24,6 +24,7 @@ from tcms.search.order import order_case_queryset
 from tcms.testcases.models import TestCase, TestCaseStatus, \
     TestCasePlan, BugSystem, TestCaseText
 from tcms.management.models import Priority, Tag, Node
+from tcms.management.forms import FeaturesForm
 from tcms.testplans.models import TestPlan
 from tcms.testruns.models import TestCaseRun
 from tcms.testruns.models import TestCaseRunStatus
@@ -554,6 +555,22 @@ def view(request):
     }
     return render(request, 'testcases/view.html', context_data)
 
+@require_GET
+def feature_view(request):
+    """
+        Shows the search form which uses JSON RPC to fetch the resuts
+    """
+
+    form = FeaturesForm(request.GET)
+    if request.GET.get('product'):
+        form.populate(product_id=request.GET['product'])
+    else:
+        form.populate()
+
+    context_data = {
+        'form': form,
+    }
+    return render(request, 'testcases/feature_view.html', context_data)
 
 class SimpleTestCaseView(TemplateView):
     """Simple read-only TestCase View used in TestPlan page"""
@@ -1014,7 +1031,7 @@ def edit(request, case_id, template_name='case/edit.html'):
         components = []
         for component in test_case.component.all():
             components.append(component.pk)
-
+        
         default_tester = test_case.default_tester_id and test_case.default_tester.email or None
         form = EditCaseForm(initial={
             'summary': test_case.summary,

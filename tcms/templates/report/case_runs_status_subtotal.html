@@ -19,7 +19,7 @@
 	<tr class="variety_error">
 		<td>ERROR</td>
 		<td>{{ case_runs_status_subtotal.ERROR }}</td>
-		<td>{{ case_runs_status_subtotal.IDLE|default:0|percentage:case_runs_status_subtotal.TOTAL }}</td>
+		<td>{{ case_runs_status_subtotal.ERROR|default:0|percentage:case_runs_status_subtotal.TOTAL }}</td>
 	</tr>
 	<tr class="variety_tested">
 		<td>PAUSED</td>

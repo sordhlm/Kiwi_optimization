@@ -9,6 +9,7 @@ urlpatterns = [
     url(r'^$', views.all, name='testcases-all'),
     url(r'^search/$', views.search, name='testcases-search'),
     url(r'^view/$', views.view, name='testcases-view'),
+    url(r'^feature_view/$', views.feature_view, name='features-view'),
     url(r'^load-more/$', views.load_more_cases),
     url(r'^clone/$', views.clone, name='testcases-clone'),
     url(r'^printable/$', views.printable, name='testcases-printable'),

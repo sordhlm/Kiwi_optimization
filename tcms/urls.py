@@ -62,7 +62,6 @@ urlpatterns = [
     url(r'^caserun/(?P<case_run_id>\d+)/bug/$', testruns_views.bug, name='testruns-bug'),
     url(r'^caserun/comment-many/', ajax.comment_case_runs, name='ajax-comment_case_runs'),
     url(r'^caserun/update-bugs-for-many/', ajax.update_bugs_to_caseruns),
-    url(r'^caserun/(?P<case_id>\d+)/runcase/$', testruns_views.runcase, name='testruns-runcase'),
 
     url(r'^linkref/add/$', linkreference_views.add, name='linkref-add'),
     url(r'^linkref/remove/(?P<link_id>\d+)/$', linkreference_views.remove),

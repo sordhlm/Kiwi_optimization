@@ -81,7 +81,7 @@ class XMLRPCSerializer:
 
         raise TypeError("QuerySet(list) or Models(dictionary) is required")
 
-    def serialize_model(self, case_or_category = 0):
+    def serialize_model(self):
         """
         Check the fields of models and convert the data
 
@@ -91,57 +91,29 @@ class XMLRPCSerializer:
             raise TypeError("Models or Dictionary is required")
         response = {}
         opts = self.model._meta
-        if case_or_category == 1:
-            for field in opts.local_fields:
-                # for a django model, retrieving a foreignkey field
-                # will fail when the field value isn't se
-                if field.name in ["case_id", "is_automated", "summary", "case_status", "category", "priority"]:
-                    # or field.name in ["id", "name", "product_id", "product", "description", "parent_category_id","parent_category"]
-                    # print("ccc {}".format(field.name))
-                    try:
-                        value = getattr(self.model, field.name)
-                    except ObjectDoesNotExist:
-                        value = None
-                    if isinstance(value, datetime):
-                        value = datetime_to_str(value)
-                    if isinstance(value, timedelta):
-                        value = timedelta_to_str(value)
-                    if isinstance(field, ForeignKey):
-                        fk_id = "%s_id" % field.name
-                        if value is None:
-                            response[fk_id] = None
-                        else:
-                            response[fk_id] = getattr(self.model, fk_id)
-                            value = str(value)
-                    response[field.name] = value
-                if field.name in ["author", "default_tester", "create_date"]:
-                    value = "CNEX_HZ_QA"
-                    response[field.name] = value
-        else:
-            # print("NNNNNNNNNNNNNNNNNNNN\n\n\n\n\n\n\n")
-            for field in opts.local_fields:
-                # for a django model, retrieving a foreignkey field
-                # will fail when the field value isn't set
-                try:
-                    value = getattr(self.model, field.name)
-                except ObjectDoesNotExist:
-                    value = None
-                if isinstance(value, datetime):
-                    value = datetime_to_str(value)
-                if isinstance(value, timedelta):
-                    value = timedelta_to_str(value)
-                if isinstance(field, ForeignKey):
-                    fk_id = "%s_id" % field.name
-                    if value is None:
-                        response[fk_id] = None
-                    else:
-                        response[fk_id] = getattr(self.model, fk_id)
-                        value = str(value)
-                response[field.name] = value
-            for field in opts.local_many_to_many:
+        for field in opts.local_fields:
+            # for a django model, retrieving a foreignkey field
+            # will fail when the field value isn't set
+            try:
                 value = getattr(self.model, field.name)
-                value = value.values_list('pk', flat=True)
-                response[field.name] = list(value)
+            except ObjectDoesNotExist:
+                value = None
+            if isinstance(value, datetime):
+                value = datetime_to_str(value)
+            if isinstance(value, timedelta):
+                value = timedelta_to_str(value)
+            if isinstance(field, ForeignKey):
+                fk_id = "%s_id" % field.name
+                if value is None:
+                    response[fk_id] = None
+                else:
+                    response[fk_id] = getattr(self.model, fk_id)
+                    value = str(value)
+            response[field.name] = value
+        for field in opts.local_many_to_many:
+            value = getattr(self.model, field.name)
+            value = value.values_list('pk', flat=True)
+            response[field.name] = list(value)
         return response
 
     def serialize_queryset(self):

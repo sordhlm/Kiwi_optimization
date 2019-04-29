@@ -49,7 +49,6 @@ def overall(request, template_name='report/list.html'):
     }
     return render(request, template_name, context_data)
 
-
 def overview(request, product_id, template_name='report/overview.html'):
     """Product for a product"""
     try:
@@ -105,10 +104,9 @@ def overview(request, product_id, template_name='report/overview.html'):
         single_plans_cnt.append(single_cnt)
 
 
-        bug_system = BugSystem.objects.get(pk=3)
-        tracker = IssueTrackerType.from_name(bug_system.tracker_type)(bug_system)
-        bug_trend = tracker.gen_bug_trend_data({'product':product.bug_system_product,'delta':'7'})
-        print(bug_trend)
+    bug_system = BugSystem.objects.get(pk=3)
+    tracker = IssueTrackerType.from_name(bug_system.tracker_type)(bug_system)
+    bug_trend = tracker.gen_bug_trend_data({'product':product.bug_system_product,'delta':'1'})
 
     context_data = {
         'SUB_MODULE_NAME': 'overview',
@@ -311,6 +309,7 @@ class ProductComponentReport(TemplateView, ProductComponentReportData):
         total_cases = self.total_cases(product_id)
         failed_case_runs_count = self.failed_case_runs_count(product_id)
         finished_case_runs_count = self.finished_case_runs_count(product_id)
+        com_cnt = {'PENDING':0,'RUNNING':0,'FAIL':0,'PASS':0}
 
         for component in components:
             component_id = component.pk
@@ -319,13 +318,23 @@ class ProductComponentReport(TemplateView, ProductComponentReportData):
 
             total_runs = finished_case_runs_count.get(component_id, 0)
             total_cases_of_component = component.total_cases
+            stat = self.case_runs_count(component.pk)
 
-            if total_runs and total_cases_of_component:
-                component.finished_case_run_percent = \
-                    round(total_runs * 100.0 / total_cases_of_component, 1)
+            component.PASSED = stat['PASSED'] if 'PASSED' in stat else 0
+            component.FAILED = stat['FAILED'] if 'FAILED' in stat else 0
+            component.BLOCKED = stat['BLOCKED'] if 'BLOCKED' in stat else 0
+            component.IDLE = component.total_cases - total_runs
+            if total_cases_of_component == 0:
+                component.status = 'PENDING'
             else:
-                component.finished_case_run_percent = 0
-
+                if component.IDLE:
+                    component.status = 'RUNNING'
+                else:
+                    if component.failed_case_run_count:
+                        component.status = 'FAIL'
+                    else:
+                        component.status = 'PASS'
+            com_cnt[component.status] += 1
         # To show detail statistics upon case run status if user clicks a
         # component
         case_runs_status_subtotal = None
@@ -341,6 +350,7 @@ class ProductComponentReport(TemplateView, ProductComponentReportData):
             'components': components,
             'component': selected_component,
             'case_runs_status_subtotal': case_runs_status_subtotal,
+            'com_cnt': json.dumps(com_cnt),
         })
 
         return data

@@ -80,6 +80,18 @@ function update_category_select_from_product() {
     }
 }
 
+function update_component_select_from_product() {
+    var updateCallback = function(data) {
+        updateSelect(data, '#id_component', 'id', 'name')
+    }
+
+    var product_id = $('#id_product').val();
+    if (product_id) {
+        jsonRPC('Component.filter', {product: product_id}, updateCallback);
+    } else {
+        updateCallback([]);
+    }
+}
 /*
     Used for on-change event handlers
 */

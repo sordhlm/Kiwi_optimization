@@ -91,6 +91,7 @@ MENU_ITEMS = [
     ]),
     (_('VIEW'), [
         (_('View Test Cases'), reverse_lazy('testcases-view')),
+        (_('View Test Features'), reverse_lazy('features-view')),
         (_('View Test Plans'), reverse_lazy('plans-search')),
     ]),
     (_('REPORTING'), [

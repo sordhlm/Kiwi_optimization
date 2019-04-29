@@ -36,6 +36,7 @@ from tcms.testruns.data import TestCaseRunDataMixin
 from tcms.testruns.forms import NewRunForm, SearchRunForm, BaseRunForm
 from tcms.testruns.models import TestRun, TestCaseRun, TestCaseRunStatus
 from tcms.issuetracker.types import IssueTrackerType
+from tcms.testexecutor.types import TestExecutorType
 # from tcms.rest_client.rest_client import RestClient
 from production_rest_client.rest_client import RestClient
 from wkhtmltopdf.views import PDFTemplateView
@@ -121,7 +122,7 @@ class CustomPDF(PDFTemplateView, TestCaseRunDataMixin):
 def genPDF(request):
     filename = 'my_pdf.pdf'
     template_name = 'run/report.html'
-    print("start genPDF")
+    #print("start genPDF")
     return PDFTemplateView.as_view(filename=filename, template_name=template_name)(request,1)
 
 @require_POST
@@ -287,6 +288,32 @@ def open_run_get_users(case_runs):
         pk__in=assignee_ids).values_list('pk', 'username')
     return (dict(testers.iterator()), dict(assignees.iterator()))
 
+def update_runnig_test_status(case_run):
+    if case_run.runkey:
+        executor_class = TestExecutorType.from_name("CnexExecutor")
+        client = executor_class(case_run.node.ip, timeout=0.5)
+        case_run.markResult(client.query_test_result(case_run.runkey))
+        #ret = {'state':0}
+        #print("Start access server!")
+        #client = RestClient(case_run.node.ip, time_out=0.5)
+        #print("Start request status!")
+        #ret = client.test_case.get_async_result(case_run.runkey)
+        #print(ret)
+        #if ret['state']:
+        #    if('FINISHED' in ret['state']):
+        #        case_run.markPass(ret['msg']) if ret['result'] else case_run.markFail(ret['msg'])
+        #    elif ('NOT_START' in ret['state']):
+        #        case_run.markPending("Test is pending")
+        #    elif ('RUNNING' in ret['state']):
+        #        case_run.markRunning("Test is running")
+        #    elif ('ABORT' in ret['state']):
+        #        case_run.markError("Test is aborted by USER")
+        #    else:
+        #        case_run.notes = ret['msg']
+        #        case_run.save()
+        #else:
+        #    case_run.notes = ret['msg']
+        #    case_run.save()
 
 @require_GET
 def get(request, run_id, template_name='run/get.html'):
@@ -317,12 +344,18 @@ def get(request, run_id, template_name='run/get.html'):
     # 7. get tags
     # Get the list of testcases belong to the run
     test_cases = []
-    node_list = []
+    node_list = [] 
+    case_run_status_name = TestCaseRunStatus.get_names()
     for test_case_run in test_case_runs:
         test_cases.append(test_case_run.case_id)
         if test_case_run.node:
             if (test_case_run.node.ip is not "--default--"):
                 node_list.append(test_case_run.node.ip)
+            if settings.RUNNER == "REST_API_RUN":
+                if ('RUNNING' in case_run_status_name[test_case_run.case_run_status_id]) or \
+                    ('PAUSED' in case_run_status_name[test_case_run.case_run_status_id]):
+                    update_runnig_test_status(test_case_run)
+  
     tags = Tag.objects.filter(case__in=test_cases).values_list('name', flat=True)
     tags = list(set(tags))
     tags.sort()
@@ -332,23 +365,23 @@ def get(request, run_id, template_name='run/get.html'):
         priorities = dict(Priority.objects.values_list('pk', 'value'))
         #nodes = dict(Node.objects.values_list('pk', 'name'))
         testers, assignees = open_run_get_users(test_case_runs)
-        test_case_run_pks = []
-        for test_case_run in test_case_runs:
-            test_case_run_pks.append(test_case_run.pk)
-        comments_subtotal = open_run_get_comments_subtotal(test_case_run_pks)
-        case_run_status = TestCaseRunStatus.get_names()
-
+        #test_case_run_pks = []
+        #for test_case_run in test_case_runs:
+        #    test_case_run_pks.append(test_case_run.pk)
+        comments_subtotal = open_run_get_comments_subtotal(test_cases)
+        
         for case_run in test_case_runs:
             #node = nodes.get(case_run.node.id) if case_run.node else "Not Configured"
             node = case_run.node if case_run.node else Node.objects.get(pk=1)
+              
             yield (case_run,
                    node,
                    testers.get(case_run.tested_by_id, None),
                    assignees.get(case_run.assignee_id, None),
                    priorities.get(case_run.case.priority_id),
-                   case_run_status[case_run.case_run_status_id],
+                   case_run_status_name[case_run.case_run_status_id],
                    comments_subtotal.get(case_run.pk, 0))
-    
+    assignees = User.objects.all()
     context_data = {
         'test_run': test_run,
         'from_plan': request.GET.get('from_plan', False),
@@ -361,7 +394,8 @@ def get(request, run_id, template_name='run/get.html'):
         'case_own_tags': tags,
         'bug_trackers': BugSystem.objects.all(),
         'nodes': Node.objects.all(),
-        'choosen_nodes': set(node_list)
+        'choosen_nodes': set(node_list),
+        'assignees':assignees
     }
     return render(request, template_name, context_data)
 
@@ -502,14 +536,6 @@ class TestRunReportView(TemplateView, TestCaseRunDataMixin):
         return context
 
 @require_GET
-def runcase(request, case_id, template_name='run/execute_case.html'):
-    import time
-    print("[views.runcase] case_id:%s"%case_id)
-    time.sleep(5)
-    return JsonResponse({'rc': 1,
-                     'response': 'run case'})
-
-@require_GET
 @permission_required('testruns.change_testrun')
 def bug(request, case_run_id, template_name='run/execute_case_run.html'):
     """Process the bugs for case runs."""
@@ -630,13 +656,15 @@ def bug(request, case_run_id, template_name='run/execute_case_run.html'):
 def updateFW(request):
     file = request.POST.get("file")
     nodes = request.POST.getlist("list[]")
-    print("**Start Update FW ...%s"%file)
-    print(nodes)
+    #print("**Start Update FW ...%s"%file)
+    #print(nodes)
     result = {}
     for node in nodes:
-        cli = RestClient(node)
-        ret = cli.operation.upgrade(file)
-        result[node] = 'ok' if ret == 200 else 'fail'
+        executor_class = TestExecutorType.from_name("CnexExecutor")
+        client = executor_class(node, timeout=5)
+        ret = client.update_fw(file)
+        result[node] = ret
+
     return JsonResponse({'result': result})
 
 @require_POST
@@ -1053,15 +1081,34 @@ class UpdateCaseNodeView(View):
         node_name = request.POST.get('node_name')
         object_ids = request.POST.getlist('object_pk[]')
         node = get_object_or_404(Node, name=(node_name))
-        print(node)
+        #print(node)
         for caserun_pk in object_ids:
             test_case_run = get_object_or_404(TestCaseRun, pk=int(caserun_pk))
             test_case_run.node = node
-            test_case_run.tested_by = request.user
             test_case_run.close_date = datetime.now()
             test_case_run.save()
 
         return JsonResponse({'rc': 0, 'response': 'ok'})
+
+@method_decorator(permission_required('testruns.change_testcaserun'), name='dispatch')
+class UpdateCaseAssignView(View):
+    """Updates TestCaseRun.case_run_status_id. Called from the front-end."""
+
+    http_method_names = ['post']
+
+    def post(self, request):
+        assignee_id = request.POST.get('assign')
+        object_ids = request.POST.getlist('object_pk[]')
+        assignee = get_object_or_404(User, id=(assignee_id))
+        #print(node)
+        for caserun_pk in object_ids:
+            test_case_run = get_object_or_404(TestCaseRun, pk=int(caserun_pk))
+            test_case_run.assignee = assignee
+            test_case_run.close_date = datetime.now()
+            test_case_run.save()
+
+        return JsonResponse({'rc': 0, 'response': 'ok'})
+
 
 @method_decorator(permission_required('testruns.change_testcaserun'), name='dispatch')
 class RunCaseThenUpdateStatus(View):
@@ -1072,31 +1119,35 @@ class RunCaseThenUpdateStatus(View):
     def post(self, request):
         import time
         object_ids = request.POST.getlist('object_pk[]')
-        print(object_ids)
+        #print(object_ids)
         for caserun_pk in object_ids:
             test_case_run = get_object_or_404(TestCaseRun, pk=int(caserun_pk))
-            print("case_id:%d"%test_case_run.case.case_id)
+            #print("case_id:%d"%test_case_run.case.case_id)
             # test_case_run.tested_by = request.user
             # test_case_run.close_date = datetime.now()
             # test_case_run.save()
             host = test_case_run.node.ip
             test_case_script = test_case_run.case.script
-            # print("struct is: {}".format(test_case_run._state.fields_cache["node"].__dict__))
             if test_case_script != "" and host != "":
                 if settings.RUNNER == "REST_API_RUN":
-                    client = RestClient(host)
-                    try:
-                        client.test_case.run(test_case = test_case_script, mode = "async")
-                    except Exception as e:
-                        test_case_run.case_run_status_id = 7
-                        test_case_run.notes = e
-                        # add_comment(test_case_run, q)
-                        test_case_run.save()
-                        print("case execute fault, error message: {}".format(e))
-                    else:
-                        print("will run case on node(ip): {}\ncase script: {}".format(host, test_case_script))
+                    executor_class = TestExecutorType.from_name("CnexExecutor")
+                    client = executor_class(host, timeout=5)
+                    test_case_run.markResult(client.run_test_in_async_mode(test_case_script))
                 else:
                     print("Runner not ready")
             else:
                 print("Run case Error. please check node(ip) or case script")
         return JsonResponse({'rc': 0, 'response': 'ok'})
+
+@require_POST
+def cancelTest(request):
+    object_ids = request.POST.getlist('object_pk[]')
+    for caserun_pk in object_ids:
+        test_case_run = get_object_or_404(TestCaseRun, pk=int(caserun_pk))
+        host = test_case_run.node.ip
+        if settings.RUNNER == "REST_API_RUN":
+            executor_class = TestExecutorType.from_name("CnexExecutor")
+            client = executor_class(host, timeout=5)
+            test_case_run.markResult(client.cancel_all_test())
+
+    return JsonResponse({'rc': 0, 'response': 'ok'})

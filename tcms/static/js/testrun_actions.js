@@ -48,6 +48,7 @@ Nitrate.TestRuns.Details.on_load = function() {
     var file = jQ("#bin_file").val()
     console.debug(file);
     var node_list = serializeNodeFromInputList(jQ('#id_node')[0])
+    
     jQ.ajax({
         type:"POST",
         data: {"file":file,"list":node_list},
@@ -58,14 +59,25 @@ Nitrate.TestRuns.Details.on_load = function() {
             jQ('#form_updatefw').parent().find('.case_title').each(function(index){
                 var ip = jQ(this).text().replace(/\t|\n/g,"")
                 var icon = jQ(this).parent().find('.icon_status')
-                console.debug(ip)
+                var msg = jQ(this).parent().find('#update_msg')
 
-                if(stat[ip] == "ok"){
-                    icon.removeClass('btn_idle');
-                    icon.addClass('btn_passed');
-                } else if(stat[ip] == "fail") {
-                    icon.removeClass('btn_idle');
-                    icon.addClass('btn_failed');
+                if (stat.hasOwnProperty(ip)){
+                    if (icon.hasClass('btn_idle')){
+                        icon.removeClass('btn_idle');
+                    }
+                    else if(icon.hasClass('btn_passed')){
+                        icon.removeClass('btn_passed');
+                    } 
+                    else if(icon.hasClass('btn_failed')){
+                        icon.removeClass('btn_failed');
+                    }
+                    if(stat[ip].state == 1){
+                        icon.addClass('btn_passed');
+                        msg.append(document.createTextNode(stat[ip].msg.slice(0,80)))
+                    } else {
+                        icon.addClass('btn_failed');
+                        msg.append(document.createTextNode(stat[ip].msg.slice(0,80)))
+                    }
                 }
             });
         },
@@ -311,6 +323,23 @@ function updateRunStatus(object_pk, value, callback) {
       if (value === "2"){
         runTestCaseThenUpdate(object_pk);
       }
+      else {
+        cancelRun(object_pk);
+      }
+    },
+    'error': function (jqXHR, textStatus, errorThrown) {
+      json_failure(jqXHR);
+    }
+  });
+}
+
+function cancelRun(object_pk) {
+  jQ.ajax({
+    'url': '/run/cancel_test/',
+    'type': 'POST',
+    'data': {'object_pk': object_pk},
+    'success': function (data, textStatus, jqXHR) {
+       console.debug("cancel finish");
     },
     'error': function (jqXHR, textStatus, errorThrown) {
       json_failure(jqXHR);
@@ -323,6 +352,20 @@ function updateRunNode(object_pk, value, callback) {
     'url': '/run/case-run-update-node/',
     'type': 'POST',
     'data': {'object_pk': object_pk, 'node_name': value },
+    'success': function (data, textStatus, jqXHR) {
+      callback();
+    },
+    'error': function (jqXHR, textStatus, errorThrown) {
+      json_failure(jqXHR);
+    }
+  });
+}
+
+function updateAssign(object_pk, value, callback) {
+  jQ.ajax({
+    'url': '/run/case-run-update-assign/',
+    'type': 'POST',
+    'data': {'object_pk': object_pk, 'assign': value },
     'success': function (data, textStatus, jqXHR) {
       callback();
     },
@@ -1079,6 +1122,18 @@ jQ(document).ready(function(){
       return false;
     }
     updateRunNode(object_pks, option, reloadWindow);
+  });  
+  jQ('ul.AssignList a').click(function() {
+    var option = jQ(this).attr('value');
+    var object_pks = serializeCaseRunFromInputList(jQ('#id_table_cases')[0]);
+    if (option == '') {
+      return false;
+    }
+    if (!object_pks.length) {
+      window.alert(default_messages.alert.no_case_selected);
+      return false;
+    }
+    updateAssign(object_pks, option, reloadWindow);
   });  
 });
 

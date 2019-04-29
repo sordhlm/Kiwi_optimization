@@ -4,6 +4,7 @@
 {% block subtitle %}Add TestCase to TestRun{% endblock %}
 
 {% block custom_stylesheet %}
+<link rel="stylesheet" type="text/css" href="{% static 'style/base.css' %}" media="screen" />
 <link rel="stylesheet" href="{% static 'patternfly/dist/css/patternfly.min.css' %}">
 {% endblock %}
 
@@ -22,6 +23,19 @@ var plan_id = {{test_run.plan_id}};
 {% endblock %}
 
 {% block contents %}
+<div class="loading_div" id="loading_div">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="loader">
+                        <div class="loading-1"></div>
+                        <div class="loading-2">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <div id="content">
 	<h2 id="display_title">Add TestCase(s) to <a href="{% url "testruns-get" test_run.run_id %}">{{ test_run.summary }}</a></h2>
 	<table class="runsDetail" border="0" width="66%" cellspacing="0" cellpadding="0">

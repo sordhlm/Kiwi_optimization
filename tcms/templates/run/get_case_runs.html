@@ -59,6 +59,14 @@
 				{% endfor %}
 			</ul>
 		</div>
+		<div class="btnBlueCaserun">
+			<span>Assign</span>
+			<ul class="AssignList">
+				{% for assigne in assignees %}
+				<li><a value="{{ assigne.id }}" href="#" class="addBlue9">{{ assigne }}</a></li>
+				{% endfor %}
+			</ul>
+		</div>
 	</div>
 	<div class="clear"></div>
 </div>

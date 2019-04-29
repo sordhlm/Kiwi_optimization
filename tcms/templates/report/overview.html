@@ -6,7 +6,8 @@
 <link rel="stylesheet" href="{% static 'bootstrap/dist/css/bootstrap.min.css' %}">
 {% endblock %}
 {% block custom_javascript %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+<script src="{% static 'js/lib/plugin.filler.js' %}"></script>
+<script src="{% static 'chart.js/dist/Chart.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/run_report_actions.js' %}"></script>
 <script type="text/javascript">
     var total_plan_count = {{ total_plan_count | safe }};
@@ -16,9 +17,9 @@
 {% block contents %}
 <div id="content">
 	{% include 'report/nav.html' %}
-	<canvas id="myChart1" style="height:400px; width:1000px;margin:50px; float:left"> </canvas>
-	<canvas id="myChart2" style="height:400px; width:600px;margin:50px; float:right"> </canvas>
-	<canvas id="myChart3" style="height:400px; width:1800px;margin:50px;"> </canvas>
+	<canvas id="progress_trend" style="margin:50px; float:left; width:1000px; height:400px"> </canvas>
+	<canvas id="progress_rate" style="margin-left:1200px; margin-top:50px; position:absolute; width:400px; height:400px"> </canvas>
+	<canvas id="bug_trend" style="margin:50px; width:95%; height:400px"> </canvas>
 	<table class="list border-bottom" id="id_table_report" style="width:98%;margin-left:20px">
 		<thead>
 			<tr>

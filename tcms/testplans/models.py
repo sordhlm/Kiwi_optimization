@@ -38,6 +38,8 @@ class TestPlan(TCMSActionModel):
     name = models.CharField(max_length=255, db_index=True)
     text = models.TextField(blank=True)
     create_date = models.DateTimeField(db_column='creation_date', auto_now_add=True)
+    start_date = models.DateField(db_column='start_date', null=True)
+    end_date = models.DateField(db_column='end_date', null=True)
     is_active = models.BooleanField(db_column='isactive', default=True, db_index=True)
     extra_link = models.CharField(max_length=1024, default=None, blank=True, null=True)
 

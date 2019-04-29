@@ -4,17 +4,14 @@ $(document).ready(function() {
         ajax: function(data, callback, settings) {
             var params = {};
 
-            if ($('#id_product').val()) {
+            if ($('#id_product').val() != "") {
                 params['category__product'] = $('#id_product').val();
                 if (select_node != 0){
                     params['category'] = select_node;
                 }
-            };
-
-            //if ($('#id_category').val()) {
-            //    params['category'] = $('#id_category').val();
-            //};
-            dataTableJsonRPC('TestCase.filter', params, callback);
+                //console.debug($('#id_product').val())
+                dataTableJsonRPC('TestCase.filter', params, callback);
+            }            
         },
         columns: [
             { data: "case_id" },
@@ -54,10 +51,11 @@ $(document).ready(function() {
     //    }
     //});
     $('#id_product').change(function() {
+        displayLoadingDiv(); 
         select_node = 0;
-        var updateCategory = function(data) {
-            updateSelect(data, '#id_category', 'id', 'name');
-        }
+        //var updateCategory = function(data) {
+        //    updateSelect(data, '#id_category', 'id', 'name');
+        //}
 
         var genTreeView = function(data) {
             var treedata = [];
@@ -90,32 +88,48 @@ $(document).ready(function() {
                     reloadTableAndPagainfo(table);
                 }
             });
+            
         }
 
         var product_id = $(this).val();
+        //console.debug(product_id)
         if (product_id) {
-            jsonRPC('Category.filter', {product: product_id}, updateCategory);
+            //jsonRPC('Category.filter', {product: product_id}, updateCategory);
             jsonRPC('Category.filter', {product: product_id}, genTreeView);
         } else {
-            updateCategory([]);
+            //updateCategory([]);
+            hiddenLoadingDiv();
         }
         reloadTableAndPagainfo(table);
-    });
-    $('#id_category').change(function() {
-        reloadTableAndPagainfo(table);
+
     });
 
     $('.bootstrap-switch').bootstrapSwitch();
 
     $('.selectpicker').selectpicker();
+
 });
 function reloadTableAndPagainfo(table){
     var updatePage = function() {
         var info = table.page.info();
         $('.total-pages').html(info.pages);
+        hiddenLoadingDiv();
     }
     table.ajax.reload(updatePage);  
+    
 }
+
+function displayLoadingDiv(){
+    var loading_div = document.getElementById("loading_div");
+    loading_div.style.display = 'block';
+}
+
+function hiddenLoadingDiv(){
+    var loading_div = document.getElementById("loading_div");
+    console.debug("hidden loading");
+    loading_div.style.display = 'none';
+}
+
 function addSubNode(treedata,tlist){
     if ((Number(treedata) == 0)||(Number(tlist) == 0)){
         return 1;

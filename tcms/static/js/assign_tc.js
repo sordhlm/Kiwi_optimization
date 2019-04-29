@@ -1,7 +1,6 @@
 $(document).ready(function() {
-    var genTreegrid = function(data) {
-        //console.debug("assigncase")
-        //console.debug(data)
+    displayLoadingDiv();
+    var genTreegrid = function(data) {  
         var columns = [
                        {
                         "title":"Summary",
@@ -45,7 +44,7 @@ $(document).ready(function() {
         var tbody = $('<tbody></tbody>');
         $.each(data, function (i, item) {
             if (item.depth == 0){
-                var tr = $('<tr id='+item.id+' class="category"></tr>');
+                var tr = $('<tr id='+item.id+' class="category collapsed"></tr>');
                 var td = $('<td></td>');
                 var span = $('<input class="category" type="checkbox" name="cate" value="'+item.id+'">');
                 tr.append(td);
@@ -133,11 +132,20 @@ $(document).ready(function() {
                 toggleSubCheckBoxes(this, 'id_tree_table', 'treecase');
             });
         }
+        hiddenLoadingDiv();
     }
     jsonRPC('TestCase.assigncase', plan_id, genTreegrid);
 
 });
+function displayLoadingDiv(){
+    var loading_div = document.getElementById("loading_div");
+    loading_div.style.display = 'block';
+}
 
+function hiddenLoadingDiv(){
+    var loading_div = document.getElementById("loading_div");
+    loading_div.style.display = 'none';
+}
 function toggleAllSubCategory(element, container, arr){ 
     var cate_id = element.value;
     var sub_list = []

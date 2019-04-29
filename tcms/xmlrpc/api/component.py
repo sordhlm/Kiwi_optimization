@@ -7,7 +7,7 @@ from modernrpc.core import rpc_method, REQUEST_KEY
 from tcms.management.models import Component
 from tcms.xmlrpc.utils import pre_check_product
 from tcms.xmlrpc.decorators import permissions_required
-
+from tcms.testcases.models import TestCase
 
 __all__ = (
     'create',
@@ -28,7 +28,49 @@ def filter(query):  # pylint: disable=redefined-builtin
         :return: List of serialized :class:`tcms.management.models.Component` objects
         :rtype: list(dict)
     """
-    return Component.to_xmlrpc(query)
+    ret = Component.to_xmlrpc(query)
+    return ret
+
+@rpc_method(name='Component.filter_for_view')
+def filter_for_view(query):  # pylint: disable=redefined-builtin
+    """
+    .. function:: XML-RPC Component.filter(query)
+
+        Search and return the resulting list of components.
+
+        :param query: Field lookups for :class:`tcms.management.models.Component`
+        :type query: dict
+        :return: List of serialized :class:`tcms.management.models.Component` objects
+        :rtype: list(dict)
+    """
+    ret = Component.to_xmlrpc(query)
+    #print(ret)
+    if "product" in query.keys():
+        #print(query["product"])
+        for case in TestCase.objects.filter(category__product=query["product"]).distinct():
+            for component in case.component.all():
+                #print("%s %s"%(case.summary, component.name))
+                add_case_to_component(ret, component.id, case.case_id)
+            #if case.component is not None:
+            #    print(case.component)
+        #print(ret)
+        #ret = []
+    else:
+        ret = []
+    return ret
+
+def add_case_to_component(com_list, fid, cid):
+    for com in com_list:
+        #print(com['id'])
+        if com['id'] == fid:
+            #print("find component")
+            if('case_id' in com):
+                #print("case list exit")
+                com['case_id'].append(cid)
+            else:
+                #print("case list not exit")
+                com['case_id'] = []
+                com['case_id'].append(cid)
 
 
 @permissions_required('management.add_component')

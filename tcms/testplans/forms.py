@@ -36,7 +36,8 @@ class BasePlanForm(forms.Form):
         required=False
     )
     parent = forms.IntegerField(required=False)
-
+    start_date = forms.DateField(required=False)
+    end_date = forms.DateField(required=False)
     owner = forms.CharField(
         label="Plan Document",
         required=False

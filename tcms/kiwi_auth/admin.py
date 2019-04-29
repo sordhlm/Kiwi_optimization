@@ -25,6 +25,41 @@ class MyUserChangeForm(UserChangeForm):
         else:
             return self.cleaned_data['email']
 
+class MyUserCreateForm(forms.ModelForm):
+    """
+        Enforces unique user emails.
+    """
+    email = forms.EmailField(required=True)
+    password1 = forms.CharField(label='Password', widget=forms.PasswordInput)
+    password2 = forms.CharField(label='Password confirmation', widget=forms.PasswordInput)
+
+    class Meta:
+        model = User
+        fields = ('username',)
+
+    def clean_email(self):
+        query_set = User.objects.filter(email=self.cleaned_data['email'])
+        if self.instance:
+            query_set = query_set.exclude(pk=self.instance.pk)
+        if query_set.count():
+            raise forms.ValidationError(_('This email address is already in use'))
+        else:
+            return self.cleaned_data['email']
+
+    def clean_password2(self):
+        password1 = self.cleaned_data.get("password1")
+        password2 = self.cleaned_data.get("password2")
+        if password1 and password2 and password1 != password2:
+            raise forms.ValidationError("Passwords don't match")
+        return password2
+
+    def save(self, commit=True):
+        user = super(MyUserCreateForm, self).save(commit=False)
+        user.set_password(self.cleaned_data["password1"])
+        if commit:
+            user.save()
+        return user
+
 
 def _modifying_myself(request, object_id):
     return request.user.pk == int(object_id)
@@ -37,6 +72,7 @@ class KiwiUserAdmin(UserAdmin):
     # override standard form and make the email address unique
     # even when adding users via admin panel
     form = MyUserChangeForm
+    add_form = MyUserCreateForm
 
     def has_change_permission(self, request, obj=None):
         return request.user.is_superuser or obj is not None
@@ -69,8 +105,11 @@ class KiwiUserAdmin(UserAdmin):
 
     def get_fieldsets(self, request, obj=None):
         first_fieldset_fields = ('username',)
-        if _modifying_myself(request, obj.pk):
-            first_fieldset_fields = first_fieldset_fields + ('password',)
+        if obj is not None:
+            if _modifying_myself(request, obj.pk):
+                first_fieldset_fields = first_fieldset_fields + ('password',)
+        else:
+            first_fieldset_fields = first_fieldset_fields + ('password1', 'password2',)
 
         remaining_fieldsets = (
             (_('Personal info'), {'fields': ('first_name', 'last_name', 'email')}),

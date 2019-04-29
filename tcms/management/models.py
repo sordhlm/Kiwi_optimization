@@ -7,7 +7,7 @@ from tcms.core.models import TCMSActionModel
 
 class Node(TCMSActionModel):
     id = models.AutoField(db_column='node_id', primary_key=True)
-    name = models.CharField(max_length=255, blank=True)
+    name = models.CharField(max_length=10, blank=True)
     ip = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
 

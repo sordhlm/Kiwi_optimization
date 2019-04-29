@@ -170,12 +170,9 @@ jQ(function() {
 		<div class="clear"></div>
 
 	</div>
-
+    
 	{% include 'run/status_statistics.html' %}
-
-	<div class="clear"></div>
-	</div>
-	<div class="node_list" style="margin-left:60%">
+	<div class="node_list" style="width:680px; position:absolute;margin-left:1040px">
 		<form id="form_updatefw" class="form-horizontal" method="POST">
 			<span>Update FW: </span>
 			<input type="text" id="bin_file" name="bin_file">
@@ -187,8 +184,9 @@ jQ(function() {
 					<th width="20">
 						<input id="id_check_all_node_button" type="checkbox" title="Select all nodes/Select none nodes" />
 					</th>
-					<th width="140">Node </th>
+					<th width="40">Node </th>
 					<th width="50" style='text-align:center'>Status</th>
+					<th width="100">Comments </th>
 				</thead>
 				<tbody>
 					{% for node in choosen_nodes %}
@@ -201,12 +199,17 @@ jQ(function() {
 						<td class="expandable center">
 							<img border="1" alt="" class="icon_status btn_idle" />
 						</td>
+						<td class="case_title expandable" id="update_msg">
+						</td>
 					</tr>
 					{% endfor %}
 				</tbody>
 			</table>
 		</div>
 	</div>
+	<div class="clear"></div>
+	</div>
+
 	<div class="Detailform border-1">
 		{% include 'run/get_case_runs.html' %}
 	</div>

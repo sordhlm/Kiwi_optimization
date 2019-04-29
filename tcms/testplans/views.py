@@ -365,6 +365,8 @@ def edit(request, plan_id, template_name='plan/edit.html'):
                 test_plan.product = form.cleaned_data['product']
                 test_plan.product_version = form.cleaned_data['product_version']
                 test_plan.type = form.cleaned_data['type']
+                test_plan.start_date = form.cleaned_data['start_date']
+                test_plan.end_date = form.cleaned_data['end_date']
                 test_plan.is_active = form.cleaned_data['is_active']
                 test_plan.extra_link = form.cleaned_data['extra_link']
                 test_plan.owner = form.cleaned_data['owner']
@@ -386,6 +388,8 @@ def edit(request, plan_id, template_name='plan/edit.html'):
             'product': test_plan.product_id,
             'product_version': test_plan.product_version_id,
             'type': test_plan.type_id,
+            'start_date': test_plan.start_date,
+            'end_date': test_plan.end_date,
             'text': test_plan.text,
             'parent': test_plan.parent_id,
             'is_active': test_plan.is_active,

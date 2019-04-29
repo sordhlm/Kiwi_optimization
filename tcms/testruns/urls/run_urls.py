@@ -32,8 +32,11 @@ urlpatterns = [
         name='testruns-runcase_then_update_status'),
     url(r'^case-run-update-node/$', views.UpdateCaseNodeView.as_view(),
         name='testruns-update_caserun_node'),
+    url(r'^case-run-update-assign/$', views.UpdateCaseAssignView.as_view(),
+        name='case-run-update_caserun_assignee'),
     url(r'^export_run_report_pdf/$', views.CustomPDF.as_view(), name='testruns-genpdf'),
     url(r'^update_fw/$', views.updateFW, name='testruns-updatefw'),
+    url(r'^cancel_test/$', views.cancelTest, name='testruns-canceltest'),
     #url(r'^export_run_report_pdf/$', PDFTemplateView.as_view(template_name='run/report.html',
     #                                       filename='my_pdf.pdf'), name='pdf'),
 ]
