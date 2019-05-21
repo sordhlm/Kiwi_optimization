@@ -572,6 +572,7 @@ class LinkCasesSearchView(View):
             'product_version': plan.product_version_id,
             'case_status_id': TestCaseStatus.get_confirmed()
         })
+        normal_form.populate(plan.product_id)
         quick_form = QuickSearchCaseForm()
         return render(self.request, self.template_name, {
             'search_form': normal_form,
@@ -581,18 +582,22 @@ class LinkCasesSearchView(View):
 
     def post(self, request, plan_id):
         plan = get_object_or_404(TestPlan, pk=int(plan_id))
-
+        #print(request)
         search_mode = request.POST.get('search_mode')
         if search_mode == 'quick':
             form = quick_form = QuickSearchCaseForm(request.POST)
             normal_form = SearchCaseForm()
         else:
             form = normal_form = SearchCaseForm(request.POST)
-            form.populate(product_id=request.POST.get('product'))
+            #form.category.choices = Category.objects.all()
+            form.populate(product_id=request.POST.get('product'), suite_id=request.POST.get('suite'))
             quick_form = QuickSearchCaseForm()
-
+        
+        #print(request.POST.get('category'))
         cases = []
         if form.is_valid():
+            #print("valid form")
+            #print(form.cleaned_data)
             cases = TestCase.list(form.cleaned_data)
             cases = cases.select_related(
                 'author', 'default_tester', 'case_status', 'priority'

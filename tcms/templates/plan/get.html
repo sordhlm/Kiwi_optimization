@@ -119,7 +119,6 @@ Nitrate.TestPlans.Instance = {
 			</div>
 		</div>
 		
-		{% include 'plan/status_statistics.html' %}
 		<div class="clear"></div>
 	</div>
 	<div id="plan_detail">
@@ -148,15 +147,15 @@ Nitrate.TestPlans.Instance = {
 				</li>
 			</ul>
 			<div id="document" class="tab_list" style="display:none">
-                            <div class="listinfo_doc_content">
-                                <div id="display_summary" class="listinfo_doc">
-                                {% if test_plan.text %}
-                                    {{ test_plan.text|markdown2html }}
-                                {% else %}
-                                    <span style="color: #666">The document for this plan hasn't been written yet.</span>
-                                {% endif %}
-                                </div>
-                            </div>
+                <div class="listinfo_doc_content">
+                    <div id="display_summary" class="listinfo_doc">
+                    {% if test_plan.text %}
+                        {{ test_plan.text|markdown2html }}
+                    {% else %}
+                        <span style="color: #666">The document for this plan hasn't been written yet.</span>
+                    {% endif %}
+                    </div>
+                </div>
 			</div>
 			<div id="attachment" class="tab_list" style="display:none">
 				{% include "plan/get_attachments.html" %}

@@ -159,8 +159,11 @@ PUBLIC_VIEWS = [
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~ DANGER: Don't change the settings below!
-
-RUNNER = "REST_API_RUN"
+# Runner Config
+# enable REST_API_RUN if executor have been implemented
+# Config the name you have add in tcms/testexecutor/types.py
+REST_API_RUN = 1
+RUNNER_NAME = "CnexExecutor"
 
 SITE_ID = 1
 
@@ -298,6 +301,7 @@ MODERNRPC_METHODS_MODULES = [
     'tcms.xmlrpc.api.auth',
     'tcms.xmlrpc.api.bug',
     'tcms.xmlrpc.api.build',
+    'tcms.xmlrpc.api.suite',
     'tcms.xmlrpc.api.category',
     'tcms.xmlrpc.api.component',
     'tcms.xmlrpc.api.plantype',

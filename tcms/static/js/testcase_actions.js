@@ -145,9 +145,20 @@ Nitrate.TestCases.Details.on_load = function() {
 
 function configure_product_on_load() {
     $('#id_product').change(function() {
-        $('#id_category').find('option').remove();
-        update_category_select_from_product();
-        update_component_select_from_product();
+        //if ($('#id_suite').val() === null || !$('#id_suite').val().length){
+            $('#id_suite').find('option').remove();
+            update_suite_select_from_product();
+        //}
+        //if ($('#id_component').val() === null || !$('#id_component').val().length){
+        //    $('#id_component').find('option').remove();
+        //    update_component_select_from_product();
+        //}
+    });
+    $('#id_suite').change(function() {
+        //if ($('#id_category').val() === null || !$('#id_category').val().length) {
+            $('#id_category').find('option').remove();
+            update_category_select_from_product();
+        //}
     });
 }
 

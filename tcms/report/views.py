@@ -73,7 +73,7 @@ def overview(request, product_id, template_name='report/overview.html'):
         caserun_status_count[row['case_run_status__name']] = row['status_count']
         total += row['status_count']
     caserun_status_count['TOTAL'] = total
-    case_total = TestCase.objects.filter(category__product=product_id).count()
+    case_total = TestCase.objects.filter(category__suite__product=product_id).count()
     total_plans_tclist = {}
     query = TestPlan.objects.filter(product=product_id).order_by("plan_id")
 

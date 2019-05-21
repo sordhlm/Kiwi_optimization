@@ -46,22 +46,21 @@ Nitrate.TestRuns.Details.on_load = function() {
   });
   jQ('#form_updatefw').submit(function(){
     var file = jQ("#bin_file").val()
-    console.debug(file);
+    //console.debug(file);
     var node_list = serializeNodeFromInputList(jQ('#id_node')[0])
+    //console.debug(node_list)
+    if (file != "") {
+        jQ.ajax({
+            type:"POST",
+            data: {"file":file,"iplist":node_list.ip,"idlist":node_list.id,"slotlist":node_list.slot},
+            url: "/run/update_fw/", 
+            success: function(result, statues, xml){
+                stat = result['result']
+                jQ('#id_node').parent().find('input[name="node"]:checked').each(function(index){
+                    var ip = jQ(this).val();
+                    var icon = jQ(this).parent().parent().find('.icon_status');
+                    var msg = jQ(this).parent().parent().find('#update_msg');
     
-    jQ.ajax({
-        type:"POST",
-        data: {"file":file,"list":node_list},
-        url: "/run/update_fw/", 
-        success: function(result, statues, xml){
-            stat = result['result']
-            console.debug(stat)
-            jQ('#form_updatefw').parent().find('.case_title').each(function(index){
-                var ip = jQ(this).text().replace(/\t|\n/g,"")
-                var icon = jQ(this).parent().find('.icon_status')
-                var msg = jQ(this).parent().find('#update_msg')
-
-                if (stat.hasOwnProperty(ip)){
                     if (icon.hasClass('btn_idle')){
                         icon.removeClass('btn_idle');
                     }
@@ -71,20 +70,32 @@ Nitrate.TestRuns.Details.on_load = function() {
                     else if(icon.hasClass('btn_failed')){
                         icon.removeClass('btn_failed');
                     }
-                    if(stat[ip].state == 1){
-                        icon.addClass('btn_passed');
-                        msg.append(document.createTextNode(stat[ip].msg.slice(0,80)))
-                    } else {
-                        icon.addClass('btn_failed');
-                        msg.append(document.createTextNode(stat[ip].msg.slice(0,80)))
+                    //console.debug(ip);
+                    if (stat.hasOwnProperty(ip)){
+                        //console.debug("has IP")
+                        if(stat[ip].state == 1){
+                            icon.addClass('btn_passed');
+                            msg.text(stat[ip].msg.slice(0,80))
+                        } else {
+                            icon.addClass('btn_failed');
+                            msg.text(stat[ip].msg.slice(0,80))
+                        }
                     }
-                }
-            });
-        },
-        error: function(){
-            alert("false");
-        }      
-    });
+                    else {
+                        //console.debug("has no IP")
+                        icon.addClass('btn_failed');
+                        msg.text("No IP result")
+                    }
+                });
+            },
+            error: function(){
+                alert("false");
+            }      
+        });
+    }
+    else{
+        alert("Empty bin file");
+    }
     return false;
   });
   // Observe the case run toggle and the comment form
@@ -319,13 +330,13 @@ function updateRunStatus(object_pk, value, callback) {
     'type': 'POST',
     'data': {'object_pk': object_pk, 'status_id': value },
     'success': function (data, textStatus, jqXHR) {
-      callback();
       if (value === "2"){
         runTestCaseThenUpdate(object_pk);
       }
       else {
         cancelRun(object_pk);
       }
+      //callback();
     },
     'error': function (jqXHR, textStatus, errorThrown) {
       json_failure(jqXHR);
@@ -340,6 +351,7 @@ function cancelRun(object_pk) {
     'data': {'object_pk': object_pk},
     'success': function (data, textStatus, jqXHR) {
        console.debug("cancel finish");
+       reloadWindow();
     },
     'error': function (jqXHR, textStatus, errorThrown) {
       json_failure(jqXHR);
@@ -860,6 +872,9 @@ function runTestCaseThenUpdate(object_pk) {
     'success': function (data, textStatus, jqXHR) {
       reloadWindow();
     },
+    'error': function (data, textStatus, jqXHR) {
+      reloadWindow();
+    },
   });
 }
 
@@ -894,13 +909,26 @@ function serializeNodeFromInputList(table, name) {
     elements = jQ(table).parent().find('input[name="node"]:checked');
   }
 
-  var returnobj_list = [];
+  var ip_list = [];
+  var id_list = [];
+  var slot_list = [];
+  var dev;
+  var slot;
   elements.each(function(i) {
     if (typeof this.value === 'string') {
-      returnobj_list.push(this.value);
+      dev = jQ(this).parent().parent().find('#node_did').text().replace(/\n|\t/g,"");
+      slot = jQ(this).parent().parent().find('#node_slot').text().replace(/\n|\t/g,"");;
+      //console.debug(dev)
+      //console.debug(slot)
+      id_list.push(dev);
+      slot_list.push(slot);
+      ip_list.push(this.value);
+      //returnobj_list.push(returnobj);
+      //returnobj_list[returnobj.ip] = returnobj
+      //returnobj_list.push(this.value);
     }
   });
-  return returnobj_list;
+  return {'ip':ip_list, 'id':id_list, 'slot':slot_list};
 }
 
 function serialzeCaseForm(form, table, serialized) {

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime
+from datetime import datetime, date
 from datetime import timedelta
 from itertools import groupby
 
@@ -34,6 +34,10 @@ def datetime_to_str(value):
         return value
     return datetime.strftime(value, "%Y-%m-%d %H:%M:%S")
 
+def date_to_str(value):
+    if value is None:
+        return value
+    return date.strftime(value, "%Y-%m-%d")
 
 def timedelta_to_str(value):
     if value is None:
@@ -100,6 +104,8 @@ class XMLRPCSerializer:
                 value = None
             if isinstance(value, datetime):
                 value = datetime_to_str(value)
+            if isinstance(value, date):
+                value = date_to_str(value)
             if isinstance(value, timedelta):
                 value = timedelta_to_str(value)
             if isinstance(field, ForeignKey):

@@ -28,7 +28,7 @@ from tcms.core.utils import clean_request
 from tcms.core.utils.validations import validate_bug_id
 from tcms.management.models import Priority, Tag, Node
 from tcms.testcases.forms import CaseBugForm
-from tcms.testcases.models import TestCasePlan, TestCaseStatus, BugSystem, Category
+from tcms.testcases.models import TestCasePlan, TestCaseStatus, BugSystem, Category, Suite
 from tcms.testcases.views import get_selected_testcases
 from tcms.testplans.models import TestPlan
 from tcms.testruns.data import get_run_bug_ids
@@ -290,35 +290,13 @@ def open_run_get_users(case_runs):
 
 def update_runnig_test_status(case_run):
     if case_run.runkey:
-        executor_class = TestExecutorType.from_name("CnexExecutor")
+        executor_class = TestExecutorType.from_name(settings.RUNNER_NAME)
         client = executor_class(case_run.node.ip, timeout=0.5)
         case_run.markResult(client.query_test_result(case_run.runkey))
-        #ret = {'state':0}
-        #print("Start access server!")
-        #client = RestClient(case_run.node.ip, time_out=0.5)
-        #print("Start request status!")
-        #ret = client.test_case.get_async_result(case_run.runkey)
-        #print(ret)
-        #if ret['state']:
-        #    if('FINISHED' in ret['state']):
-        #        case_run.markPass(ret['msg']) if ret['result'] else case_run.markFail(ret['msg'])
-        #    elif ('NOT_START' in ret['state']):
-        #        case_run.markPending("Test is pending")
-        #    elif ('RUNNING' in ret['state']):
-        #        case_run.markRunning("Test is running")
-        #    elif ('ABORT' in ret['state']):
-        #        case_run.markError("Test is aborted by USER")
-        #    else:
-        #        case_run.notes = ret['msg']
-        #        case_run.save()
-        #else:
-        #    case_run.notes = ret['msg']
-        #    case_run.save()
 
 @require_GET
 def get(request, run_id, template_name='run/get.html'):
     """Display testrun's detail"""
-
     # Get the test run
     try:
         # 1. get test run itself
@@ -350,8 +328,8 @@ def get(request, run_id, template_name='run/get.html'):
         test_cases.append(test_case_run.case_id)
         if test_case_run.node:
             if (test_case_run.node.ip is not "--default--"):
-                node_list.append(test_case_run.node.ip)
-            if settings.RUNNER == "REST_API_RUN":
+                node_list.append(test_case_run.node)
+            if settings.REST_API_RUN:
                 if ('RUNNING' in case_run_status_name[test_case_run.case_run_status_id]) or \
                     ('PAUSED' in case_run_status_name[test_case_run.case_run_status_id]):
                     update_runnig_test_status(test_case_run)
@@ -655,15 +633,27 @@ def bug(request, case_run_id, template_name='run/execute_case_run.html'):
 @require_POST
 def updateFW(request):
     file = request.POST.get("file")
-    nodes = request.POST.getlist("list[]")
+    nodes = request.POST.getlist("iplist[]")
+    slot = request.POST.getlist("slotlist[]")
+    dev = request.POST.getlist("idlist[]")
     #print("**Start Update FW ...%s"%file)
     #print(nodes)
+    #print(dev)
+    #print(slot)
     result = {}
-    for node in nodes:
-        executor_class = TestExecutorType.from_name("CnexExecutor")
-        client = executor_class(node, timeout=5)
-        ret = client.update_fw(file)
-        result[node] = ret
+    if settings.REST_API_RUN:
+        #for node in nodes:
+        for i in range(len(nodes)):
+            executor_class = TestExecutorType.from_name(settings.RUNNER_NAME)
+            client = executor_class(nodes[i], timeout=5)
+            did = 1 if 'None' in dev[i] else eval(dev[i])
+            slot_id = 2 if 'None' in slot[i] else eval(slot[i])
+            #print("did: %d, slot: %d"%(did, slot_id))
+            ret = client.update_fw(file, device_index=did, slot=slot_id)
+            #print(ret)
+            result[nodes[i]] = ret
+    else:
+        result = "No Runner Found"
 
     return JsonResponse({'result': result})
 
@@ -864,7 +854,7 @@ class AddCasesToRunView(View):
         
         rows = TestCasePlan.objects.values(
             'case',
-            'case__category__product_id',
+            'case__category__suite__product_id',
             'case__create_date', 'case__summary',
             'case__category__name',
             'case__category_id',
@@ -880,57 +870,19 @@ class AddCasesToRunView(View):
         # current TestRun so we can mark them as disabled and not allow them to
         # be selected
         test_case_runs = TestCaseRun.objects.filter(run=run_id).values_list('case', flat=True)
-
+        
         data = {
-            'product_id':rows[0]["case__category__product_id"],
+            'product_id':rows[0]["case__category__suite__product_id"],
             'test_run': test_run,
             'confirmed_cases': rows,
             'confirmed_cases_count': rows.count(),
             'test_case_runs_count': len(test_case_runs),
             'exist_case_run_ids': test_case_runs,
-            'confirmed_status_id':TestCaseStatus.objects.filter(name='CONFIRMED').first().pk
+            'confirmed_status_id': TestCaseStatus.objects.filter(name='CONFIRMED').first().pk,
+            'suites': Suite.objects.filter(product=test_run.plan.product_id)
         }
 
         return render(request, 'run/assign_case.html', data)
-def genNodeList(plan,default,tlist):
-    treedata = []
-    node_list = []
-    for cate in tlist:
-        node = {'node':0,'subnodes':[],'test_cases':[]}
-        node['node'] = cate
-        node['test_cases'] = TestCasePlan.objects.values(
-                                'case',
-                                'case__create_date', 'case__summary',
-                                'case__category__name',
-                                'case__priority__value',
-                                'case__author__username'
-                            ).filter(
-                                plan_id=plan,
-                                case__case_status=TestCaseStatus.objects.filter(name='CONFIRMED').first().pk,
-                                case__category_id=cate.id
-                            )
-        if (cate.id != default.id):
-            node_list.append(node)
-            if (cate.parent_category.id == default.id):
-                treedata.append(node)
-    #print(node_list)
-    addSubNode(plan, treedata, node_list)
-    return treedata
-
-def addSubNode(plan,treedata,tlist):
-    if ((len(treedata) == 0)):
-        print("No Sub_nodes found")
-        return 1
-    for node in treedata:
-        sub_list = []
-        for cate in tlist:
-            if cate['node'].parent_category.id == node['node'].id: 
-                sub_list.append(cate)
-        if(len(sub_list) == 0):
-            continue
-        node['subnodes'] = sub_list
-        if addSubNode(plan, node['subnodes'], tlist):
-            continue
 
 @require_GET
 def cc(request, run_id):  # pylint: disable=invalid-name
@@ -1067,6 +1019,7 @@ class UpdateCaseRunStatusView(View):
             test_case_run.case_run_status_id = status_id
             test_case_run.tested_by = request.user
             test_case_run.close_date = datetime.now()
+            test_case_run.notes = ""
             test_case_run.save()
 
         return JsonResponse({'rc': 0, 'response': 'ok'})
@@ -1128,15 +1081,18 @@ class RunCaseThenUpdateStatus(View):
             # test_case_run.save()
             host = test_case_run.node.ip
             test_case_script = test_case_run.case.script
-            if test_case_script != "" and host != "":
-                if settings.RUNNER == "REST_API_RUN":
-                    executor_class = TestExecutorType.from_name("CnexExecutor")
-                    client = executor_class(host, timeout=5)
-                    test_case_run.markResult(client.run_test_in_async_mode(test_case_script))
+            if test_case_run.node:
+                if test_case_script != "" and host != "":
+                    if settings.REST_API_RUN:
+                        executor_class = TestExecutorType.from_name(settings.RUNNER_NAME)
+                        client = executor_class(host, timeout=5)
+                        test_case_run.tested_by = request.user
+                        test_case_run.close_date = datetime.now()
+                        test_case_run.markResult(client.run_test_in_async_mode(test_case_script))
+                    else:
+                        print("Runner not ready")
                 else:
-                    print("Runner not ready")
-            else:
-                print("Run case Error. please check node(ip) or case script")
+                    print("Run case Error. please check node(ip) or case script")
         return JsonResponse({'rc': 0, 'response': 'ok'})
 
 @require_POST
@@ -1144,10 +1100,11 @@ def cancelTest(request):
     object_ids = request.POST.getlist('object_pk[]')
     for caserun_pk in object_ids:
         test_case_run = get_object_or_404(TestCaseRun, pk=int(caserun_pk))
-        host = test_case_run.node.ip
-        if settings.RUNNER == "REST_API_RUN":
-            executor_class = TestExecutorType.from_name("CnexExecutor")
-            client = executor_class(host, timeout=5)
-            test_case_run.markResult(client.cancel_all_test())
+        if test_case_run.node:
+            host = test_case_run.node.ip
+            if (settings.REST_API_RUN) and (host != ""):
+                executor_class = TestExecutorType.from_name(settings.RUNNER_NAME)
+                client = executor_class(host, timeout=5)
+                test_case_run.markResult(client.cancel_all_test())
 
     return JsonResponse({'rc': 0, 'response': 'ok'})

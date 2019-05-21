@@ -141,9 +141,9 @@ def update(case_run_id, values, **kwargs):
     from tcms.testruns.forms import XMLRPCUpdateCaseRunForm
 
     tcr = TestCaseRun.objects.get(pk=case_run_id)
-    product = tcr.case.category.product
-    print(values.get('build'))
-    print(product)
+    product = tcr.case.category.suite.product
+    #print(values.get('build'))
+    #print(product)
     if isinstance(values.get('build'),str):
         build, created = Build.objects.get_or_create(name = values['build'], product = product)
         values['build'] = build.build_id

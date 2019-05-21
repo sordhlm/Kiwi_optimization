@@ -588,19 +588,29 @@ Nitrate.TestPlans.Details = {
 };
 
 Nitrate.TestPlans.SearchCase.on_load = function() {
-    $('#id_product').change(update_category_select_from_product);
-    if (!$('#id_category').val().length) {
+    $('#id_product').change(function() {
+        update_suite_select_from_product();
+        update_component_select_from_product();
+    });
+    $('#id_suite').change(function() {
         update_category_select_from_product();
-    }
-
+    });
+    //$('#id_product').change(update_suite_select_from_product);
+    //if (!$('#id_suite').val().length) {
+    //    update_suite_select_from_product();
+    //}
+    //$('#id_suite').change(update_category_select_from_product);
+    //if (!$('#id_category').val().length) {
+    //    update_category_select_from_product();
+    //}
 //fixme: for some reason when we clear Product categories are cleared
 // but components are not. as if the on-change event doesn't execute!
 // if we change to another Product both components and categories are
 // updated
-    $('#id_product').change(update_component_select_from_product);
-    if (!$('#id_component').val().length) {
-        update_component_select_from_product();
-    }
+    //$('#id_product').change(update_component_select_from_product);
+    //if (!$('#id_component').val().length) {
+    //    update_component_select_from_product();
+    //}
 
   // new feature for searching by case id.
   var quick_search = jQ("#tp_quick_search_cases_form");

@@ -43,20 +43,26 @@ def filter_for_view(query):  # pylint: disable=redefined-builtin
         :return: List of serialized :class:`tcms.management.models.Component` objects
         :rtype: list(dict)
     """
-    ret = Component.to_xmlrpc(query)
+    #ret = Component.to_xmlrpc(query)
     #print(ret)
+    ret = []
     if "product" in query.keys():
         #print(query["product"])
-        for case in TestCase.objects.filter(category__product=query["product"]).distinct():
-            for component in case.component.all():
-                #print("%s %s"%(case.summary, component.name))
-                add_case_to_component(ret, component.id, case.case_id)
-            #if case.component is not None:
-            #    print(case.component)
+        #for case in TestCase.objects.filter(category__suite__product=query["product"]).distinct():
+        #    for component in case.component.all():
+        #        #print("%s %s"%(case.summary, component.name))
+        #        add_case_to_component(ret, component.id, case.case_id)
+        for component in Component.objects.filter(product=query['product']):
+            #print(component.serialize())
+            s_com = component.serialize()
+            s_com['case_id'] = list(component.cases.all().values_list('pk', flat=True))
+            #print(component.cases.all().values_list('pk', flat=True))
+            print(s_com)
+            ret.append(s_com)
         #print(ret)
         #ret = []
-    else:
-        ret = []
+    #else:
+    #    ret = []
     return ret
 
 def add_case_to_component(com_list, fid, cid):
@@ -95,6 +101,7 @@ def create(values, **kwargs):
     """
     initial_owner_id = values.get('initial_owner_id', None)
     initial_qa_contact_id = values.get('initial_qa_contact_id', None)
+    description = values.get('description', None)
     product = pre_check_product(values)
 
     request = kwargs.get(REQUEST_KEY)
@@ -108,11 +115,14 @@ def create(values, **kwargs):
     else:
         _initial_qa_contact_id = request.user.pk
 
+
+
     return Component.objects.create(
         name=values['name'],
         product=product,
         initial_owner_id=_initial_owner_id,
         initial_qa_contact_id=_initial_qa_contact_id,
+        description=description,
     ).serialize()
 
 
@@ -148,5 +158,7 @@ def update(component_id, values):
     if values.get('initial_qa_contact_id') and \
             User.objects.filter(pk=values['initial_qa_contact_id']).exists():
         component.initial_qa_contact_id = values['initial_qa_contact_id']
+    if values.get('description'):
+        component.description = values['description']
     component.save()
     return component.serialize()

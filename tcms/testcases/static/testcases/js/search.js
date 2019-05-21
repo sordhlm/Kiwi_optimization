@@ -8,7 +8,11 @@ $(document).ready(function() {
             }
 
             if ($('#id_product').val()) {
-                params['category__product'] = $('#id_product').val();
+                params['category__suite__product'] = $('#id_product').val();
+            };
+
+            if ($('#id_suite').val()) {
+                params['category__suite'] = $('#id_suite').val();
             };
 
             if ($('#id_category').val()) {
@@ -75,8 +79,8 @@ $(document).ready(function() {
     });
 
     $('#id_product').change(function() {
-        var updateCategory = function(data) {
-            updateSelect(data, '#id_category', 'id', 'name');
+        var updateSuite = function(data) {
+            updateSelect(data, '#id_suite', 'id', 'name');
         }
         var updateComponent = function(data) {
             updateSelect(data, '#id_component', 'id', 'name');
@@ -84,14 +88,25 @@ $(document).ready(function() {
 
         var product_id = $(this).val();
         if (product_id) {
-            jsonRPC('Category.filter', {product: product_id}, updateCategory);
+            jsonRPC('Suite.filter', {product: product_id}, updateSuite);
             jsonRPC('Component.filter', {product: product_id}, updateComponent);
         } else {
-            updateCategory([]);
+            updateSuite([]);
             updateComponent([]);
         }
     });
-
+    $('#id_suite').change(function() {
+        var updateCategory = function(data) {
+            updateSelect(data, '#id_category', 'id', 'name');
+        }
+        var suite_id = $(this).val();
+        if (suite_id){
+            jsonRPC('Category.filter', {suite: suite_id}, updateCategory);
+        }
+        else{
+            updateCategory([]);
+        }
+    });
     $('.bootstrap-switch').bootstrapSwitch();
 
     $('.selectpicker').selectpicker();

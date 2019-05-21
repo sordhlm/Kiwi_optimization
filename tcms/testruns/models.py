@@ -407,7 +407,7 @@ class TestCaseRun(TCMSActionModel):
         self.save()
 
     def markResult(self, result):
-        print(result)
+        #print(result)
         if 'kiwi_stat_id' in result:
             self.case_run_status = TestCaseRunStatus.objects.get(id=result['kiwi_stat_id'])
         if 'msg' in result:

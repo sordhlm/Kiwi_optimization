@@ -1,9 +1,11 @@
 $(document).ready(function() {
+    //displayLoadingDiv();
     var table = $("#resultsTable").DataTable({
         ajax: function(data, callback, settings) {
             var params = {};
 
             if ($('#id_product').val()) {
+                product_id = $('#id_product').val();
                 params['product'] = $('#id_product').val();
             };
 
@@ -42,6 +44,7 @@ $(document).ready(function() {
             zeroRecords: "No records found"
         },
         order: [[ 0, 'asc' ]],
+        lengthMenu: [[50]],
     });
 
     hookIntoPagination('#resultsTable', table);
@@ -50,7 +53,10 @@ $(document).ready(function() {
         displayLoadingDiv();
         reloadTableAndPagainfo(table);
     });
-
+    $('#id_add_feature').click(function() {
+        var ref_url = '/admin/management/component/add/?product='+product_id;
+        window.open(ref_url)
+    });
     $('.bootstrap-switch').bootstrapSwitch();
 
     $('.selectpicker').selectpicker();
@@ -59,6 +65,7 @@ function reloadTableAndPagainfo(table){
     var updatePage = function() {
         var info = table.page.info();
         $('.total-pages').html(info.pages);
+        console.debug("hidden loading")
         hiddenLoadingDiv();
     }
     table.ajax.reload(updatePage);  

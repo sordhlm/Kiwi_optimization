@@ -119,6 +119,6 @@ class CnexExecutor(TestExecutorType):
         return self._convert_result(ret)
 
     # pylint: disable = invalid-name, no-self-use
-    def update_fw(self, file):
-        ret = self.rtc.operation.upgrade(file)
+    def update_fw(self, file, device_index=1, slot=2):
+        ret = self.rtc.operation.upgrade(file, device_index=device_index, slot=slot)
         return ret

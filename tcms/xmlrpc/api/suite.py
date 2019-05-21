@@ -2,11 +2,11 @@
 
 from modernrpc.core import rpc_method
 
-from tcms.testcases.models import Category
+from tcms.testcases.models import Suite
 from tcms.xmlrpc.decorators import permissions_required
 
 @permissions_required('testcases.add_testcase')
-@rpc_method(name='Category.create')
+@rpc_method(name='Suite.create')
 def create(values, **kwargs):
     """
     .. function:: XML-RPC TestCase.create(values)
@@ -28,20 +28,18 @@ def create(values, **kwargs):
             }
             >>> TestCase.create(values)
     """
-    if (not values.get('suite_id')) and (not values.get('suite')):
-        raise ValueError("suite or suite_id is not specified")
-    #if not (values.get('parent_category_id') or values.get('parent_category')):
-    #   raise ValueError("parent_category_id or parent_category is not specified")
+    if (not values.get('product_id')) and (not(values.get('product') and values.get('classification'))):
+        raise ValueError("product or product_id is not specified")
     if not (values.get('description')):
         values['description'] = ''
 
-    cate = Category.create(values=values)
+    suite = Suite.create(values=values)
     cate.save()
     
-    result = cate.serialize()
+    result = suite.serialize()
     return result
 
-@rpc_method(name='Category.filter')
+@rpc_method(name='Suite.filter')
 def filter(query):  # pylint: disable=redefined-builtin
     """
     .. function:: XML-RPC Category.filter(query)
@@ -53,12 +51,12 @@ def filter(query):  # pylint: disable=redefined-builtin
         :return: List of serialized :class:`tcms.testcases.models.Category` objects
         :rtype: list(dict)
     """
-    ret = Category.to_xmlrpc(query)
+    ret = Suite.to_xmlrpc(query)
     return ret
 
 @permissions_required('testcases.change_testcase')
-@rpc_method(name='Category.update')
-def update(cate_id, values, **kwargs):
+@rpc_method(name='Suite.update')
+def update(suite_id, values, **kwargs):
     """
     .. function:: XML-RPC Category.update(case_id, values)
 
@@ -73,18 +71,13 @@ def update(cate_id, values, **kwargs):
         :raises: Category.DoesNotExist if object specified by PK doesn't exist
         :raises: PermissionDenied if missing *testcases.change_testcase* permission
     """
-    if not (values.get('parent_category_id') or values.get('name')):
-        raise ValueError("Only support update parent_category_id or name")
-    cate = Category.objects.get(pk=cate_id)
-    if values.get('parent_category_id'):
-        parent = Category.objects.get(id=values.get('parent_category_id'))
-        if parent.product.pk != cate.product.pk:
-            raise ValueError("Category product not match")
-        setattr(cate, 'parent_category', parent)
 
-    if values.get('name'):  
-        setattr(cate, 'name', values['name'])
+    suite = Suite.objects.get(pk=suite_id)
 
-    cate.save()
+    for key in values.keys():
+        if key not in ['product']:
+            setattr(suite, key, values[key])
 
-    return cate.serialize()
+    suite.save()
+
+    return suite.serialize()

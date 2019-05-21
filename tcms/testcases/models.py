@@ -78,18 +78,63 @@ class TestCaseStatus(TCMSActionModel):
 # register model for DB translations
 vinaigrette.register(TestCaseStatus, ['name'])
 
+class Suite(TCMSActionModel):
+    id = models.AutoField(db_column='suite_id', primary_key=True)
+    name = models.CharField(max_length=255)
+    product = models.ForeignKey('management.Product', related_name="suite",  
+                                on_delete=models.CASCADE)
+    description = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name_plural = u'test suite'
+        unique_together = ('product', 'name')
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def create(cls, values):
+        """
+        Create the suite element based on models/forms.
+        """
+        product_id = values.get('product_id')
+
+        if product_id:
+            product = Product.objects.get(id=product_id)
+        elif values.get('product'):
+            ret = Product.objects.get_or_create(name = values['product'], classification = classification[0])
+            product = ret[0]
+        else:
+            raise ValueError('Product not specify')
+
+        suite = cls(
+            name=values['name'],
+            product=product,
+            description=values['description'],
+        )
+        return suite
+
+    #def save(self, force_insert=False, force_update=False, using=None,
+    #         update_fields=None):
+    #    super().save(force_insert=force_insert,
+    #                 force_update=force_update,
+    #                 using=using,
+    #                 update_fields=update_fields)
+#
+    #    self.category.get_or_create(name='--default--')
+
 
 class Category(TCMSActionModel):
     id = models.AutoField(db_column='category_id', primary_key=True)
     name = models.CharField(max_length=255)
-    product = models.ForeignKey('management.Product', related_name="category", blank=True, 
+    suite = models.ForeignKey('Suite', related_name="category", 
                                 on_delete=models.CASCADE)
     description = models.TextField(blank=True)
     parent_category = models.ForeignKey('self', verbose_name="parent_category", blank=True, null=True, on_delete=models.CASCADE)
     
     class Meta:
         verbose_name_plural = u'test case categories'
-        #unique_together = ('product', 'name','parent_category__id')
+        #unique_together = ('suite', 'name','parent_category__id')
 
     def __str__(self):
         return self.name
@@ -99,29 +144,31 @@ class Category(TCMSActionModel):
         """
         Create the category element based on models/forms.
         """
-        product_id = values.get('product_id')
+        suite_id = values.get('suite_id')
 
-        if product_id:
-            product = Product.objects.get(id=product_id)
-        elif values.get('product') and values.get('classification'):
-            classification = Classification.objects.get_or_create(name = values['classification'])
-            ret = Product.objects.get_or_create(name = values['product'], classification = classification[0])
-            product = ret[0]
+        if suite_id:
+            suite = Suite.objects.get(id=suite_id)
+        elif values.get('suite') and values.get('product'):
+            product = Product.objects.get_or_create(name = values['product'])
+            ret = Suite.objects.get_or_create(name = values['suite'], product = product[0])
+            suite = ret[0]
         else:
-            raise ValueError('Product not specify')
+            raise ValueError('Suite not specify')
         parent_id = values.get('parent_category_id')
         if parent_id:
             parent = Category.objects.get(id=parent_id)
-            print(parent)
-        elif values.get('parent_category'):
-            ret = Category.objects.get_or_create(name = values['parent_category'],product = product[0])
-            parent = ret[0]
+            #print(parent)
         else:
-            raise ValueError('Parent category not specify')
+            parent = None
+        #elif values.get('parent_category'):
+        #    ret = Category.objects.get_or_create(name = values['parent_category'],product = product[0])
+        #    parent = ret[0]
+        #else:
+        #    raise ValueError('Parent category not specify')
         
         cate = cls(
             name=values['name'],
-            product=product,
+            suite=suite,
             description=values['description'],
             parent_category=parent,
         )
@@ -130,16 +177,21 @@ class Category(TCMSActionModel):
 def genTreeElement(obj, isCate):
     element = {}
     if isCate:
+        if not isinstance(obj, Category):
+            print("obj type is not correct")
+            return element
         element["isCate"] = 1
         element["name"] = obj.name
         element["id"] = obj.id
-        element["pid"] = obj.parent_category.id
-        element["depth"] = 1
+        element["pid"] = 0 if obj.parent_category is None else obj.parent_category.id
+        element["depth"] = 0 if obj.parent_category is None else 1
         element["auth"] = ""
         element["priority"] = ""
-        if "--default--" in obj.parent_category.name:
-            element["depth"] = 0
+        #element["depth"] = 0 if obj.parent_category is None else 1
     else:
+        if not isinstance(obj, TestCase):
+            print("obj type is not correct")
+            return element
         element["isCate"] = 0
         element["id"] = obj.case_id
         element["pid"] = obj.category.id
@@ -148,31 +200,25 @@ def genTreeElement(obj, isCate):
         element["priority"] = obj.priority.value
     return element
 
-def findAllSubCategory(id, clist, plan_id=0, callback=None):
+def findAllSubCategory(id, clist, plan_id=0, suite_id=0, callback=None):
     catelist = []
-    catelist = Category.objects.filter(parent_category = id)
+    if id:
+        catelist = Category.objects.filter(parent_category = id)
+    else:
+        catelist = Category.objects.filter(parent_category = id, suite = suite_id)
     ret = 1
+    #print(catelist)
     if catelist:
         for cate in catelist: 
             cate_s = genTreeElement(cate,1)
             clist.append(cate_s)      
             if callback:
                 ret = callback(cate, plan_id, clist)
-            findAllSubCategory(cate.id, clist, plan_id, callback)
+            #print(clist)
+            findAllSubCategory(cate.id, clist, plan_id=plan_id, suite_id=suite_id, callback=callback)
     else:
         #print("no cate found")
         return 1
-
-#def findAllSubCategory(cid, clist):
-#    catelist = []
-#    catelist = Category.objects.filter(parent_category = cid)
-#    if catelist:
-#        for cate in catelist:
-#            clist.append(cate.id)
-#            findAllSubCategory(cate.id, clist)
-#    else:
-#        #print("no cate found")
-#        return 1
 
 class TestCase(TCMSActionModel):
     history = KiwiHistoricalRecords()
@@ -327,12 +373,15 @@ class TestCase(TCMSActionModel):
         del plan_str
 
         if query.get('product'):
-            queryset = queryset.filter(category__product=query['product'])
+            queryset = queryset.filter(category__suite__product=query['product'])
             if query.get('category'):
                 clist = []
-                cate = Category.objects.filter(product=query['product'],name=query['category'].name)[0]
+                cate = Category.objects.filter(suite__product=query['product'],name=query['category'].name)[0]
+                #print(cate)
                 findAllSubCategory(cate.pk, clist)
                 id_list = [cate['id'] for cate in clist]
+                id_list.append(cate.pk)
+                #print(id_list)
                 queryset = queryset.filter(category_id__in=id_list)
 
         if query.get('component'):

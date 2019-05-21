@@ -59,7 +59,7 @@ jQ(function() {
 	</div>
 	<h2 id="display_title">{{ test_run.summary }}</h2>
 	<div>
-	<div class="listinfo_content" style="float:left; width:auto; margin-bottom:0px;">
+	<div class="listinfo_content" style="float:left; width:auto; margin-bottom:0px; height:200px">
 		<div ></div>
 		<div class="leftlistinfo">
 			<div class="listinfo">
@@ -172,29 +172,36 @@ jQ(function() {
 	</div>
     
 	{% include 'run/status_statistics.html' %}
-	<div class="node_list" style="width:680px; position:absolute;margin-left:1040px">
+	<div class="node_list" style="width:860px; position:absolute;margin-left:1040px">
 		<form id="form_updatefw" class="form-horizontal" method="POST">
 			<span>Update FW: </span>
 			<input type="text" id="bin_file" name="bin_file">
 			<button type="submit" id="btn_upload">Update</button>
 		</form>
-		<div class="nodeinfo">
-			<table class="list_node" id="id_node" cellspacing="0" cellspan="0">
+		<div class="nodeinfo" style="overflow-y:auto; height:180px">
+			<table class="list_node" id="id_node" cellspacing="0" cellspan="0" style="border:1px solid #7b777780">
 				<thead>
 					<th width="20">
 						<input id="id_check_all_node_button" type="checkbox" title="Select all nodes/Select none nodes" />
 					</th>
 					<th width="40">Node </th>
-					<th width="50" style='text-align:center'>Status</th>
+					<th width="10">DID </th>
+					<th width="10">Slot </th>
+					<th width="20" style='text-align:center'>Status</th>
 					<th width="100">Comments </th>
 				</thead>
 				<tbody>
 					{% for node in choosen_nodes %}
 					<tr class="{% cycle 'odd' 'even' %}">
 						<td>
-							<input type="checkbox" name="node" value="{{ node }}" title="Select/Unselect" />
+							<input type="checkbox" name="node" value="{{ node.ip }}" title="Select/Unselect" />
 						</td>
-						<td class="case_title expandable">{{node}}
+						<td class="case_title expandable" id="node_ip">
+							<a href="{% url "admin:management_node_change" node.id %}"">{{node.ip}}</a>
+						</td>
+						<td class="case_title expandable" id="node_did" value="{{node.did}}">{{node.did}}
+						</td>
+						<td class="case_title expandable" id="node_slot" value="{{node.slot}}">{{node.slot}}
 						</td>
 						<td class="expandable center">
 							<img border="1" alt="" class="icon_status btn_idle" />

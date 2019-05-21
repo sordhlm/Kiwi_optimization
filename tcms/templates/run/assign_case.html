@@ -23,7 +23,7 @@ var plan_id = {{test_run.plan_id}};
 {% endblock %}
 
 {% block contents %}
-<div class="loading_div" id="loading_div">
+<div class="loading_div" id="loading_div" style="margin-top:-10px">
         <div class="container">
             <div class="row">
                 <div class="col-md-12">
@@ -147,7 +147,16 @@ var plan_id = {{test_run.plan_id}};
 				<span class="tit"><b>Cases in this Run: {{ test_case_runs_count }}</b></span>
 				<input type="submit" value="Update" title="Update the cases in this run"/>
 				<input type="reset" value="Reset" title="Reset to the original cases "/>
+				<div class="btnBlueCaserun" style="width:95px">
+					<span>Suite</span>
+					<ul class="suiteList">
+						{% for suite in suites %}
+						<li><a value="{{ suite.id }}" href="#" class="addBlue9">{{ suite }}</a></li>
+						{% endfor %}
+					</ul>
+				</div>
 			</div>
+
 			<table id="id_tree_table" class="table table-bordered table-hover table-treegrid">
 			</table>
 		</div>

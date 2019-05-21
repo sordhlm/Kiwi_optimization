@@ -2,7 +2,7 @@
 from django import forms
 
 from tcms.management.models import Component, Product, Build, Version
-from tcms.testcases.models import Category
+from tcms.testcases.models import Category, Suite
 
 
 class CustomSearchForm(forms.Form):
@@ -29,6 +29,11 @@ class CustomSearchForm(forms.Form):
         label='Plan name',
         required=False,
     )
+    suite = forms.ModelChoiceField(
+        label='Case Suite',
+        queryset=Suite.objects.none(),
+        required=False,
+    )
     category = forms.ModelChoiceField(
         label='Case category',
         queryset=Category.objects.none(),
@@ -46,9 +51,9 @@ class CustomSearchForm(forms.Form):
                 product__id=product_id).only('value')
             self.fields['build'].queryset = Build.objects.filter(
                 product__id=product_id).only('name')
-            self.fields['category'].queryset = \
-                Category.objects.filter(product__id=product_id).only(
-                    'name')
+            #self.fields['category'].queryset = \
+            #    Category.objects.filter(product__id=product_id).only(
+            #        'name')
             self.fields['component'].queryset = \
                 Component.objects.filter(product__id=product_id).only('name')
 

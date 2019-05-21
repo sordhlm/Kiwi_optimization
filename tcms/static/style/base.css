@@ -596,7 +596,7 @@ ul.data_content_title li{ display:inline-block; margin-left:3px;}
 .listinfo .listinfo_input ul li{float:left; display:inline; padding:3px 10px 0 0;}
 .listinfo .listinfo_input .automatedlist{float:left; padding:3px 0 0 10px;}
 .listinfo .name li{list-style:none;}
-#id_is_automated{ width:100px;}
+#id_is_automated{ width:140px;}
 .datetimeshortcuts{display:block; float:left; padding:3px 0 0 0;}
 .datetimeshortcuts #calendarlink0, .datetimeshortcuts #calendarlink1, .datetimeshortcuts #calendarlink2, .datetimeshortcuts #calendarlink3, .datetimeshortcuts #calendarlink4, .datetimeshortcuts #calendarlink5, .datetimeshortcuts #calendarlink6{vertical-align:bottom;}
 

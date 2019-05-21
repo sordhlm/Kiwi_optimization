@@ -9,7 +9,7 @@ from django.http import HttpResponseRedirect
 
 from tcms.issuetracker import types
 from tcms.core.history import ReadOnlyHistoryAdmin
-from tcms.testcases.models import BugSystem, Category, TestCase
+from tcms.testcases.models import BugSystem, Category, Suite, TestCase
 
 
 class TestCaseAdmin(ReadOnlyHistoryAdmin):
@@ -22,11 +22,15 @@ class TestCaseAdmin(ReadOnlyHistoryAdmin):
     def change_view(self, request, object_id, form_url='', extra_context=None):
         return HttpResponseRedirect(reverse('testcases-get', args=[object_id]))
 
+class SuiteAdmin(admin.ModelAdmin):
+    search_fields = (('name',))
+    list_display = ('id', 'name', 'product', 'description')
+    list_filter = ('product', )
 
 class CategoryAdmin(admin.ModelAdmin):
     search_fields = (('name',))
-    list_display = ('id', 'name', 'product', 'description', 'parent_category')
-    list_filter = ('product','parent_category', )
+    list_display = ('id', 'name', 'suite', 'description', 'parent_category')
+    list_filter = ('suite','parent_category', )
 
 
 class IssueTrackerTypeSelectWidget(Select):
@@ -105,5 +109,6 @@ Configure external bug trackers</a> section before editting the values below!</h
 
 
 admin.site.register(BugSystem, BugSystemAdmin)
+admin.site.register(Suite, SuiteAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(TestCase, TestCaseAdmin)

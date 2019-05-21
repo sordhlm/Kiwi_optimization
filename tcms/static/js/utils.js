@@ -13,12 +13,31 @@ function updateSelect(data, selector, id_attr, value_attr) {
 
     data.forEach(function(element) {
         new_options += '<option value="' + element[id_attr] + '">' + element[value_attr] + '</option>';
+        //console.debug(new_options)
     });
 
     _select_tag.innerHTML = new_options;
     //$(selector).selectpicker('refresh');
 }
 
+function updateSelectWithPicker(data, selector, id_attr, value_attr) {
+    var _select_tag = $(selector)[0];
+    var new_options = '';
+
+    // in some cases, e.g. TestRun search, the 1st <option> element is ---
+    // which must always be there to indicate nothing selected
+    if (_select_tag.options.length) {
+        new_options = _select_tag.options[0].outerHTML;
+    }
+
+    data.forEach(function(element) {
+        new_options += '<option value="' + element[id_attr] + '">' + element[value_attr] + '</option>';
+        //console.debug(new_options)
+    });
+
+    _select_tag.innerHTML = new_options;
+    $(selector).selectpicker('refresh');
+}
 
 /*
     Used for on-change event handlers
@@ -72,9 +91,22 @@ function update_category_select_from_product() {
         updateSelect(data, '#id_category', 'id', 'name')
     }
 
+    var product_id = $('#id_suite').val();
+    if (product_id) {
+        jsonRPC('Category.filter', {suite: product_id}, updateCallback);
+    } else {
+        updateCallback([]);
+    }
+}
+
+function update_suite_select_from_product() {
+    var updateCallback = function(data) {
+        updateSelect(data, '#id_suite', 'id', 'name')
+    }
+
     var product_id = $('#id_product').val();
     if (product_id) {
-        jsonRPC('Category.filter', {product: product_id}, updateCallback);
+        jsonRPC('Suite.filter', {product: product_id}, updateCallback);
     } else {
         updateCallback([]);
     }

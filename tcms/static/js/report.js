@@ -28,8 +28,9 @@ Nitrate.Report.CustomSearch.on_load = function() {
     if (!$('#id_build').val().length) {
         update_build_select_from_product();
     }
+    $('#id_product').change(update_suite_select_from_product);
 
-    $('#id_product').change(update_category_select_from_product);
+    $('#id_suite').change(update_category_select_from_product);
     if (!$('#id_category').val().length) {
         update_category_select_from_product();
     }

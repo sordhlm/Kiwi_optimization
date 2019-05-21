@@ -10,7 +10,7 @@ from tcms.core.utils.validations import validate_bug_id
 from tcms.testplans.models import TestPlan
 from tcms.testruns.models import TestCaseRun
 from tcms.management.models import Priority, Product, Component
-from tcms.testcases.models import TestCase, Category, TestCaseStatus
+from tcms.testcases.models import TestCase, Category, Suite, TestCaseStatus
 from tcms.testcases.models import Bug, AUTOMATED_CHOICES as FULL_AUTOMATED_CHOICES
 from tcms.testcases.fields import MultipleEmailField
 
@@ -96,6 +96,12 @@ class BaseCaseForm(forms.Form):
         queryset=Product.objects.all(),
         empty_label=None,
     )
+    suite = forms.ModelChoiceField(
+        label="Suite",
+        queryset=Suite.objects.none(),
+        empty_label=None,
+        required=False
+    )
     category = forms.ModelChoiceField(
         label="Category",
         queryset=Category.objects.none(),
@@ -154,16 +160,27 @@ class BaseCaseForm(forms.Form):
 
         return ''
 
-    def populate(self, product_id=None):
+    #def populate(self, product_id=None):
+    #    if product_id:
+    #        self.fields['category'].queryset = Category.objects.filter(
+    #            product__id=product_id)
+    #        self.fields['component'].queryset = Component.objects.filter(
+    #            product__id=product_id)
+    #    else:
+    #        self.fields['category'].queryset = Category.objects.all()
+    #        self.fields['component'].queryset = Component.objects.all()
+
+    def populate(self, product_id=None, suite_id=None):
+        """Limit the query to fit the plan"""
         if product_id:
-            self.fields['category'].queryset = Category.objects.filter(
-                product__id=product_id)
             self.fields['component'].queryset = Component.objects.filter(
                 product__id=product_id)
-        else:
-            self.fields['category'].queryset = Category.objects.all()
-            self.fields['component'].queryset = Component.objects.all()
+            self.fields['suite'].queryset = Suite.objects.filter(
+                product__id=product_id)  
 
+        if suite_id:
+            self.fields['category'].queryset = Category.objects.filter(
+                suite__id=suite_id)
 
 class NewCaseForm(BaseCaseForm):
     def clean_case_status(self):
@@ -248,6 +265,11 @@ class BaseCaseSearchForm(forms.Form):
     author = forms.CharField(required=False)
     default_tester = forms.CharField(required=False)
     tag__name__in = forms.CharField(required=False)
+    suite = forms.ModelChoiceField(
+        label="Suite",
+        queryset=Suite.objects.none(),
+        required=False
+    )
     category = forms.ModelChoiceField(
         label="Category",
         queryset=Category.objects.none(),
@@ -297,13 +319,17 @@ class BaseCaseSearchForm(forms.Form):
     def clean_tag__name__in(self):
         return string_to_list(self.cleaned_data['tag__name__in'])
 
-    def populate(self, product_id=None):
+    def populate(self, product_id=None, suite_id=None):
         """Limit the query to fit the plan"""
         if product_id:
-            self.fields['category'].queryset = Category.objects.filter(
-                product__id=product_id)
             self.fields['component'].queryset = Component.objects.filter(
                 product__id=product_id)
+            self.fields['suite'].queryset = Suite.objects.filter(
+                product__id=product_id)
+
+        if suite_id:
+            self.fields['category'].queryset = Category.objects.filter(
+                suite__id=suite_id)
 
 
 # todo BaseCaseSearchForm is never used stand-alone and nothing else

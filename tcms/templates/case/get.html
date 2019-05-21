@@ -15,7 +15,7 @@ Nitrate.Utils.after_page_load(Nitrate.TestCases.Details.on_load);
 
 Nitrate.TestCases.Instance = {
 	pk: {{ test_case.pk }},
-	product_id: {{ test_case.category.product.pk }},
+	product_id: {{ test_case.category.suite.product.pk }},
 	category_id: {{ test_case.category_id }},
 	author_id: {{ test_case.author_id }},
 }
@@ -84,7 +84,13 @@ Nitrate.TestCases.Instance = {
 				<div class="listinfo">
 					<div class="title grey">Product&nbsp;:</div>
 					<div class="name">
-						<span>{{ test_case.category.product }}</span>
+						<span>{{ test_case.category.suite.product }}</span>
+					</div>
+				</div>
+				<div class="listinfo">
+					<div class="title grey">Suite&nbsp;:</div>
+					<div class="name">
+						<span>{{ test_case.category.suite }}</span>
 					</div>
 				</div>
 				<div class="listinfo">

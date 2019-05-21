@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from django.forms import EmailField, ValidationError
-
 from modernrpc.core import rpc_method, REQUEST_KEY
 
 from tcms.core.utils import form_errors_to_list
 from tcms.management.models import Tag
 from tcms.management.models import Component
-from tcms.testcases.models import TestCase, Category, TestCaseStatus, TestCasePlan
+from tcms.testcases.models import TestCase, Category, Suite, TestCaseStatus, TestCasePlan
 from tcms.testcases.models import findAllSubCategory, genTreeElement
 from tcms.testplans.models import TestPlan
 from tcms.xmlrpc.forms import UpdateCaseForm, NewCaseForm
@@ -305,7 +304,11 @@ def filter(query):  # pylint: disable=redefined-builtin
     """
     results = []
     cate_list = []
+    #print("testcase.filter")
+    #print(query)
     if "category" in query.keys():
+        cate_f = Category.objects.get(id = query['category'])
+        cate_list.append(genTreeElement(cate_f, 1))
         findAllSubCategory(query['category'],cate_list)
         if len(cate_list):
             for cate in cate_list:
@@ -317,14 +320,13 @@ def filter(query):  # pylint: disable=redefined-builtin
             for case in TestCase.objects.filter(**query).distinct():
                 serialized_case = case.serialize()
                 serialized_case['text'] = case.latest_text().serialize()
-                results.append(serialized_case)
-            
+                results.append(serialized_case)    
     else:
+
         for case in TestCase.objects.filter(**query).distinct():
             serialized_case = case.serialize()
             serialized_case['text'] = case.latest_text().serialize()
             results.append(serialized_case)
-
     return results
         
 def addCaseforAssign(cate, plan_id, clist):
@@ -342,14 +344,16 @@ def addCaseforAssign(cate, plan_id, clist):
     return 1
 
 @rpc_method(name='TestCase.assigncase')
-def assigncase(plan_id):
-    tree_l = []
+def assigncase(plan_id, suite_id):
     cate_l = []
     status_id = TestCaseStatus.objects.filter(name='CONFIRMED').first().pk
     product_id = TestPlan.objects.filter(plan_id = plan_id).first().product.pk
-    default_cate = Category.objects.filter(product_id = product_id, name="--default--").first()
-    #print(default_cate)
-    findAllSubCategory(default_cate.pk, cate_l, plan_id, callback = addCaseforAssign)
+    case_l = TestCasePlan.objects.filter(
+                plan_id=plan_id, case__category__suite_id=suite_id, case__case_status=status_id)
+    #print(case_l)
+    if len(case_l):
+        findAllSubCategory(None, cate_l, plan_id=plan_id, suite_id=suite_id, callback=addCaseforAssign)
+    #print("assign cases finished")
     #print(cate_l)
     return cate_l 
 
@@ -375,13 +379,15 @@ def update(case_id, values, **kwargs):
     """
     form = UpdateCaseForm(values)
 
-    if values.get('category') and not values.get('product'):
-        raise ValueError('Product ID is required for category')
+    if values.get('category') and not values.get('suite'):
+        raise ValueError('Suite ID is required for category')
 
     if values.get('product'):
         form.populate(product_id=values['product'])
 
+    #print("test cases update")
     if form.is_valid():
+        #print("form is valid")
         test_case = TestCase.objects.get(pk=case_id)
         for key in values.keys():
             # only modify attributes that were passed via parameters

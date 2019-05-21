@@ -42,7 +42,6 @@ $(document).ready(function() {
             updateParamsToSearchTags('#id_tag', params);
 
             params['is_active'] = $('#id_active').is(':checked');
-
             dataTableJsonRPC('TestPlan.filter', params, callback);
         },
         columns: [

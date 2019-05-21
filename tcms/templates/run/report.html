@@ -110,10 +110,9 @@
 				<th class="widthID" width="150">Case ID</th>
 				<th>Summary</th>
 				<th width="100">Mode</th>
-				<th width="100">Tested by</th>
-				<th width="150">Category</th>
-				<th width="100">Status</th>
-				<th width="260" height="25px">Closed at</th>
+				<th width="120">Tested by</th>
+				<th width="120">Status</th>
+				<th width="300" height="25px">Closed at</th>
 			</tr>
 			{% for test_case_run in test_case_runs %}
 			<tr>
@@ -122,7 +121,6 @@
 				<td>{{ test_case_run.case.summary }}</td>
 				<td>{{ test_case_run.case.get_is_automated_status }}</td>
 				<td>{{ test_case_run.tested_by.username }}</td>
-				<td>{{ test_case_run.case.category.name }}</td>
 				<td><span class="highlight">{{ test_case_run.case_run_status.name|upper }}</span></td>
 				<td>{{ test_case_run.close_date }}</td>
 			</tr>

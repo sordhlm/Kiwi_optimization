@@ -27,9 +27,8 @@
 {% block custom_javascript %}
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
 <script src="{% static 'js/jsonrpc.js' %}"></script>
-<!--
 <script src="{% static 'bootstrap-select/dist/js/bootstrap-select.js' %}"></script>
--->
+
 <script src="{% static 'js/utils.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/testcase_actions.js' %}"></script>
 <script type="text/javascript">
@@ -74,14 +73,20 @@ Nitrate.Utils.after_page_load(Nitrate.TestCases.Edit.on_load);
 						<label>Product</label>
 						<span>{{ form.product }}</span></span><a href="{% url 'admin:management_product_add' %}" class="addlink" id="id_addt_product" target="_blank">Add Product</a><span class="grey">After Add and Refresh page</span>
 					</div>
+                    <div class="data_row">
+                        <label>Suite</label>
+                        <span id="form_suite" >{{ form.suite }}</span><a href="{% url 'admin:testcases_suite_add' %}" class="addlink" id="id_addt_product_casesuite" target="_blank">Add Suite</a><span class="grey">After Add and Refresh page</span>
+                    </div>
 					<div class="data_row">
 						<label>Category</label>
                         <span id="form_category" >{{ form.category }}</span><a href="{% url 'admin:testcases_category_add' %}" class="addlink" id="id_addt_product_casecategory" target="_blank">Add Category</a><span class="grey">After Add and Refresh page</span>
 					</div>
+                    <!--
                     <div class="data_row">
                         <label>Feature</label>
                         <span id="form_component" >{{ form.component }}</span><a href="{% url 'admin:management_component_add' %}" class="addlink" id="id_addt_product_casecomponent" target="_blank">Add Features</a><span class="grey">After Add and Refresh page</span>
                     </div>
+                    -->
 					<div class="data_row">
 						<label>Default Tester</label>
 						<span >{{ form.default_tester }}</span>
@@ -108,26 +113,26 @@ Nitrate.Utils.after_page_load(Nitrate.TestCases.Edit.on_load);
 					
 				</div>
 				<div class="editor-side">
-                                    {% if test_case %}
+                    {% if test_case %}
 					<div class="data_row">
-                                            <label>Author</label>
-                                            <div class="name">
-                                                {% if test_case.author %}
-                                                <a href="{% url "tcms-profile" test_case.author.username %}">
-                                                   {{ test_case.author.username }}
-                                                </a>
-                                                {% endif %}
-                                            </div>
+                        <label>Author</label>
+                        <div class="name">
+                            {% if test_case.author %}
+                            <a href="{% url "tcms-profile" test_case.author.username %}">
+                               {{ test_case.author.username }}
+                            </a>
+                            {% endif %}
+                        </div>
 					</div>
 					<div class="data_row">
-                                            <label >Last Editor</label>
-                                            <div id="display_editor">
-                                                {% if test_case.latest_text.author %}
-                                                <a href="{% url "tcms-profile" test_case.latest_text.author.username %}">
-                                                   {{ test_case.latest_text.author.username }}
-                                                </a>
-                                                {% endif %}
-                                            </div>
+                        <label >Last Editor</label>
+                        <div id="display_editor">
+                            {% if test_case.latest_text.author %}
+                            <a href="{% url "tcms-profile" test_case.latest_text.author.username %}">
+                               {{ test_case.latest_text.author.username }}
+                            </a>
+                            {% endif %}
+                        </div>
 					</div>
 					<div class="data_row">
 						<label >Created</label>
@@ -137,7 +142,7 @@ Nitrate.Utils.after_page_load(Nitrate.TestCases.Edit.on_load);
 						<label >Last Modified</label>
 						<div id="display_modify_date" >{{ test_case.latest_text.create_date }}</div>
 					</div>
-                                    {% endif %}
+                    {% endif %}
 					
 					<div class="data_row">
 						<label>Automated</label>

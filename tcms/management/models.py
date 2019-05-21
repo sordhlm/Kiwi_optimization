@@ -9,6 +9,8 @@ class Node(TCMSActionModel):
     id = models.AutoField(db_column='node_id', primary_key=True)
     name = models.CharField(max_length=10, blank=True)
     ip = models.CharField(max_length=255, blank=True)
+    did = models.CharField(max_length=255, blank=True, null=True)
+    slot = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True)
 
     class Meta:
@@ -53,7 +55,7 @@ class Product(TCMSActionModel):
                      using=using,
                      update_fields=update_fields)
 
-        self.category.get_or_create(name='--default--')
+        #self.suite.get_or_create(name='--default--')
         self.version.get_or_create(value='unspecified')
         self.build.get_or_create(name='unspecified')
 
@@ -79,6 +81,7 @@ class Component(TCMSActionModel):
         settings.AUTH_USER_MODEL,
         db_column='initialowner',
         related_name='initialowner',
+        blank=True,
         null=True,
         on_delete=models.CASCADE
     )
@@ -90,7 +93,7 @@ class Component(TCMSActionModel):
         null=True,
         on_delete=models.CASCADE
     )
-    description = models.TextField()
+    description = models.TextField(blank=True)
 
     # Auto-generated attributes from back-references:
     #   'cases' : list of TestCases (from TestCases.components)

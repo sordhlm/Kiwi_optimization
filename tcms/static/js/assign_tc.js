@@ -1,5 +1,11 @@
 $(document).ready(function() {
-    displayLoadingDiv();
+    $('.btnBlueCaserun').mouseover(function() {
+      $(this).find('ul').show();
+    }).mouseout(function() {
+      $(this).find('ul').hide();
+    });
+
+    
     var genTreegrid = function(data) {  
         var columns = [
                        {
@@ -19,11 +25,23 @@ $(document).ready(function() {
                         "field":"priority"
                        },                   
                      ];
-
+        var cate_columns = [
+                       {
+                        "title":"Summary",
+                        "field":"name"
+                       },
+                       {
+                        "title":"Author",
+                        "field":"auth"
+                       },    
+                       {
+                        "title":"Priority",
+                        "field":"priority"
+                       },                   
+                     ];
         var target = $("#id_tree_table");
-        target.addClass('table');
-        target.addClass('table-bordered');
-
+        $('thead').remove()
+        $('tbody').remove()
 
         var thr = $('<tr></tr>');
         
@@ -42,6 +60,7 @@ $(document).ready(function() {
         target.append(thead);
         //构造表体
         var tbody = $('<tbody></tbody>');
+        console.debug(data);
         $.each(data, function (i, item) {
             if (item.depth == 0){
                 var tr = $('<tr id='+item.id+' class="category collapsed"></tr>');
@@ -56,7 +75,7 @@ $(document).ready(function() {
                 tr.append(td);
                 td.append(span)
                 span.text(" "+item.name);
-                $.each(columns, function (i, column) {
+                $.each(cate_columns, function (i, column) {
                     if(i != 0){
                         var td = $('<td></td>');
                         td.text(item[column.field]);
@@ -65,7 +84,7 @@ $(document).ready(function() {
                 });
             }
             else if(item.isCate){
-                var tr = $('<tr id='+item.id+' class="category" data-parent=#'+(item.pid)+'></tr>');
+                var tr = $('<tr id='+item.id+' class="category " data-parent=#'+(item.pid)+'></tr>');
                 var td = $('<td></td>');
                 var span = $('<input class="category" type="checkbox" name="cate" value="'+item.id+'">');
                 tr.append(td);
@@ -77,7 +96,7 @@ $(document).ready(function() {
                 td.append(span)
                 span.text(" "+item.name);
                 tr.append(td);
-                $.each(columns, function (i, column) {
+                $.each(cate_columns, function (i, column) {
                     if(i != 0){
                         var td = $('<td></td>');
                         td.text(item[column.field]);
@@ -134,8 +153,15 @@ $(document).ready(function() {
         }
         hiddenLoadingDiv();
     }
-    jsonRPC('TestCase.assigncase', plan_id, genTreegrid);
-
+    
+    jQ('ul.suiteList a').click(function() {
+        var suite_id = jQ(this).attr('value');
+        if (suite_id == '') {
+            return false;
+        }
+        displayLoadingDiv();
+        jsonRPC('TestCase.assigncase', [plan_id, suite_id], genTreegrid);
+    }); 
 });
 function displayLoadingDiv(){
     var loading_div = document.getElementById("loading_div");

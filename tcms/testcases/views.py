@@ -22,7 +22,7 @@ from tcms.core.contrib.comments.utils import get_comments
 from tcms.search import remove_from_request_path
 from tcms.search.order import order_case_queryset
 from tcms.testcases.models import TestCase, TestCaseStatus, \
-    TestCasePlan, BugSystem, TestCaseText
+    TestCasePlan, BugSystem, TestCaseText, Suite, Category
 from tcms.management.models import Priority, Tag, Node
 from tcms.management.forms import FeaturesForm
 from tcms.testplans.models import TestPlan
@@ -142,7 +142,10 @@ def new(request, template_name='case/edit.html'):
 
     if request.method == "POST":
         form = NewCaseForm(request.POST)
-        if request.POST.get('product'):
+        if request.POST.get('suite'):
+            suite = Suite.objects.get(pk=request.POST["suite"])
+            form.populate(product_id=suite.product_id ,suite_id=request.POST['suite'])
+        elif request.POST.get('product'):
             form.populate(product_id=request.POST['product'])
         else:
             form.populate()
@@ -210,10 +213,28 @@ def new(request, template_name='case/edit.html'):
 
     # Initial NewCaseForm for submit
     else:
+        #print("New case: GET")
+        #print(request.GET)
         test_plan = plan_from_request_or_none(request)
-        form = NewCaseForm(initial=default_form_parameters)
-        if test_plan:
-            form.populate(product_id=test_plan.product_id)
+        if request.GET.get("category"):
+            #print("category exist")
+            category = Category.objects.get(pk=request.GET.get("category"))
+            form = NewCaseForm(initial={'is_automated': '0',
+                                        'product':category.suite.product.id,
+                                        'suite': category.suite.id,
+                                        'category':category.id})
+            form.populate(product_id=category.suite.product_id, suite_id=category.suite_id)
+        elif request.GET.get("suite"):
+            suite = Suite.objects.get(pk=request.GET["suite"])
+            form = NewCaseForm(initial={'is_automated': '0',
+                                        'product':suite.product_id,
+                                        'suite': suite.id})
+            form.populate(product_id=suite.product_id, suite_id=suite.id)
+        else:
+            form = NewCaseForm(initial=default_form_parameters)
+            #form = NewCaseForm(request.GET)
+            if test_plan:
+                form.populate(product_id=test_plan.product_id)
 
     context_data = {
         'test_plan': test_plan,
@@ -530,6 +551,8 @@ def search(request):
     form = SearchCaseForm(request.GET)
     if request.GET.get('product'):
         form.populate(product_id=request.GET['product'])
+    elif request.GET.get('suite'):
+        form.populate(suite_id=request.GET['suite'])
     else:
         form.populate()
 
@@ -547,6 +570,8 @@ def view(request):
     form = SearchCaseForm(request.GET)
     if request.GET.get('product'):
         form.populate(product_id=request.GET['product'])
+    elif request.GET.get('suite'):
+        form.populate(suite_id=request.GET['suite'])
     else:
         form.populate()
 
@@ -952,11 +977,11 @@ def edit(request, case_id, template_name='case/edit.html'):
             form.populate()
 
         n_form = CaseNotifyForm(request.POST)
-
+        
         if form.is_valid() and n_form.is_valid():
-
+            print("valid fomr")
+            print(form.cleaned_data['component'])
             update_testcase(request, test_case, form)
-
             test_case.add_text(author=request.user,
                                action=form.cleaned_data['action'],
                                effect=form.cleaned_data['effect'],
@@ -1045,7 +1070,8 @@ def edit(request, case_id, template_name='case/edit.html'):
             'alias': test_case.alias,
             'case_status': test_case.case_status_id,
             'priority': test_case.priority_id,
-            'product': test_case.category.product_id,
+            'product': test_case.category.suite.product_id,
+            'suite': test_case.category.suite_id,
             'category': test_case.category_id,
             'notes': test_case.notes,
             'component': components,
@@ -1055,7 +1081,7 @@ def edit(request, case_id, template_name='case/edit.html'):
             'breakdown': tctxt.breakdown,
         })
 
-        form.populate(product_id=test_case.category.product_id)
+        form.populate(product_id=test_case.category.suite.product_id, suite_id=test_case.category.suite_id)
 
     context_data = {
         'test_case': test_case,

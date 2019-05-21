@@ -4,8 +4,9 @@ $(document).ready(function() {
         ajax: function(data, callback, settings) {
             var params = {};
 
-            if ($('#id_product').val() != "") {
-                params['category__product'] = $('#id_product').val();
+            if (($('#id_suite').val() != "")) {
+                //params['category__suite__product'] = $('#id_product').val();
+                params['category__suite'] = $('#id_suite').val();
                 if (select_node != 0){
                     params['category'] = select_node;
                 }
@@ -37,26 +38,36 @@ $(document).ready(function() {
     });
 
     hookIntoPagination('#resultsTable', table);
-
-    $('#btn_newcase').click(function() {
-        window.location.href = '/cases/new';
+    $('#id_add_category').click(function() {
+        var ref_url = '/admin/testcases/category/add/?parent_category='+select_node;
+        console.debug(ref_url)
+        //window.location.href = ref_url;
+        window.open(ref_url)
     });
-    //$('#btn_test').click(function() {
-    //    window.location.href = '/admin/testcases/category/add';
-    //    var node = $('#tree').treeview('getSelected');
-    //    add ={text: ""};
-    //    add.text = prompt("Please input section name","")
-    //    if (add.text){
-    //        $('#tree').treeview('addNode',[add,node]);
-    //    }
-    //});
+    $('#btn_newcase').click(function() {
+        var ref_url = '/cases/new/?category='+select_node+'&suite='+suite_id+'&product='+product_id;
+        console.debug(ref_url)
+        //window.location.href = ref_url;
+        window.open(ref_url)
+    });
+    $('#id_delte_category').click(function() {
+        window.location.href = '/admin/testcases/category/'+select_node+'/delete';
+    });
     $('#id_product').change(function() {
+        var updateSuite = function(data) {
+            updateSelectWithPicker(data, '#id_suite', 'id', 'name');
+        }
+//
+        product_id = $(this).val();
+        if (product_id) {
+            jsonRPC('Suite.filter', {product: product_id}, updateSuite);
+        } else {
+            updateSuite([]);
+        }
+    });
+    $('#id_suite').change(function() {
         displayLoadingDiv(); 
         select_node = 0;
-        //var updateCategory = function(data) {
-        //    updateSelect(data, '#id_category', 'id', 'name');
-        //}
-
         var genTreeView = function(data) {
             var treedata = [];
             var node_list = [];
@@ -68,15 +79,15 @@ $(document).ready(function() {
                 node.id = element.id;
                 node.parent_id = element.parent_category_id;
                 node_list.push(node)
-                if(node.text == "--default--"){
-                    default_id = node.id
-                }
             })
-            treedata = node_list.filter(function(element) {
-                return (element.parent_id == default_id && element.id != default_id);
-            });
-            addSubNode(treedata,node_list);
 
+            treedata = node_list.filter(function(element) {
+                //return (element.parent_id == default_id && element.id != default_id);
+                return (element.parent_id == null)
+            });
+            //console.debug(treedata)
+            addSubNode(treedata,node_list);
+            //console.debug(treedata)
             tree = $('#tree').treeview({    
                 data: treedata, 
                 collapseIcon: "fa fa-angle-down",
@@ -91,11 +102,11 @@ $(document).ready(function() {
             
         }
 
-        var product_id = $(this).val();
+        suite_id = $(this).val();
         //console.debug(product_id)
-        if (product_id) {
+        if (suite_id) {
             //jsonRPC('Category.filter', {product: product_id}, updateCategory);
-            jsonRPC('Category.filter', {product: product_id}, genTreeView);
+            jsonRPC('Category.filter', {suite: suite_id}, genTreeView);
         } else {
             //updateCategory([]);
             hiddenLoadingDiv();

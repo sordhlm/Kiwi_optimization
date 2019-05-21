@@ -91,9 +91,13 @@
 				<span class="title"><label for="id_is_automated">Automated&nbsp;:</label></span>
 				<select id="id_is_automated" name="case__is_automated">
 					<option value="">--------</option>
-										<option value="0">Manual</option>
-										<option value="1">Auto</option>
+					<option value="0">Manual</option>
+					<option value="1">Auto</option>
 				</select>
+			</div>
+			<div class="listinfo">
+				<span class="title"><label for="id_node">Node&nbsp;:</label></span>
+				<input id="id_node" type="text" name="node__name__in" value="{{ REQUEST_CONTENTS.node__name__in }}" />
 			</div>
 		</div>
 		<div class="rightlistinfo">
