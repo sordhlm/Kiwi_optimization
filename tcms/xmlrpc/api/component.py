@@ -13,6 +13,7 @@ __all__ = (
     'create',
     'update',
     'filter',
+    'filter_testcases',
 )
 
 
@@ -28,7 +29,9 @@ def filter(query):  # pylint: disable=redefined-builtin
         :return: List of serialized :class:`tcms.management.models.Component` objects
         :rtype: list(dict)
     """
-    ret = Component.to_xmlrpc(query)
+    ret = []
+    if "product" in query.keys():
+        ret = Component.to_xmlrpc(query)
     return ret
 
 @rpc_method(name='Component.filter_for_view')
@@ -57,7 +60,7 @@ def filter_for_view(query):  # pylint: disable=redefined-builtin
             s_com = component.serialize()
             s_com['case_id'] = list(component.cases.all().values_list('pk', flat=True))
             #print(component.cases.all().values_list('pk', flat=True))
-            print(s_com)
+            #print(s_com)
             ret.append(s_com)
         #print(ret)
         #ret = []
@@ -65,19 +68,17 @@ def filter_for_view(query):  # pylint: disable=redefined-builtin
     #    ret = []
     return ret
 
-def add_case_to_component(com_list, fid, cid):
-    for com in com_list:
-        #print(com['id'])
-        if com['id'] == fid:
-            #print("find component")
-            if('case_id' in com):
-                #print("case list exit")
-                com['case_id'].append(cid)
-            else:
-                #print("case list not exit")
-                com['case_id'] = []
-                com['case_id'].append(cid)
-
+@rpc_method(name='Component.filter_testcases')
+def filter_testcases(query): 
+    results = []
+    if "component" in query.keys():
+        component = Component.objects.get(pk=query['component'])
+        for case in component.cases.all().distinct():
+            serialized_case = case.serialize()
+            serialized_case['text'] = case.latest_text().serialize()
+            # print(serialized_case)
+            results.append(serialized_case)
+    return results
 
 @permissions_required('management.add_component')
 @rpc_method(name='Component.create')

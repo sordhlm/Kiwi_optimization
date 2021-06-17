@@ -282,11 +282,11 @@ class TestCaseRun(TCMSActionModel):
     sortkey = models.IntegerField(null=True, blank=True)
 
 
-    node = models.ForeignKey('management.Node', related_name='node', null=True, on_delete=models.CASCADE)
+    node = models.ForeignKey('management.Node', related_name='node', null=True, on_delete=models.SET_NULL)
     run = models.ForeignKey(TestRun, related_name='case_run', on_delete=models.CASCADE)
     case = models.ForeignKey('testcases.TestCase', related_name='case_run',
                              on_delete=models.CASCADE)
-    case_run_status = models.ForeignKey(TestCaseRunStatus, on_delete=models.CASCADE)
+    case_run_status = models.ForeignKey(TestCaseRunStatus, related_name='case_run', on_delete=models.CASCADE)
     build = models.ForeignKey('management.Build', on_delete=models.CASCADE)
     runkey = models.TextField(null=True, blank=True)
 
@@ -385,33 +385,32 @@ class TestCaseRun(TCMSActionModel):
 
     def markPass(self, msg=''):
         self.case_run_status = TestCaseRunStatus.objects.get(id=4)
-        self.runkey = ""
+        self.runkey = None
         self.notes = msg
         self.save()
 
     def markFail(self, msg=''):
         self.case_run_status = TestCaseRunStatus.objects.get(id=5)
-        self.runkey = ""
+        self.runkey = None
         self.notes = msg
         self.save()
 
     def markError(self, msg=''):
         self.case_run_status = TestCaseRunStatus.objects.get(id=7)
-        self.runkey = ""
+        self.runkey = None
         self.notes = msg
         self.save()
 
     def clearRunInfo(self):
-        self.runkey = ""
-        self.notes = ""
+        self.runkey = None
+        self.notes = None
         self.save()
 
     def markResult(self, result):
-        #print(result)
         if 'kiwi_stat_id' in result:
             self.case_run_status = TestCaseRunStatus.objects.get(id=result['kiwi_stat_id'])
         if 'msg' in result:
-            self.notes = result['msg']
+            self.notes = result['msg'][-500:]
         if 'key' in result:
             self.runkey = result['key']
         self.save()        
@@ -427,3 +426,7 @@ class TestRunCC(models.Model):
 
     class Meta:
         unique_together = ('run', 'user')
+
+
+class Document(models.Model):
+    docfile = models.FileField(upload_to='documents/%Y/%m/%d')

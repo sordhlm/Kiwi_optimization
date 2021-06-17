@@ -10,8 +10,8 @@ from django.contrib.auth.models import User
 from django.db.models import Count, F
 
 from tcms.management.models import Priority
-from tcms.testcases.models import TestCase
-from tcms.testcases.models import Bug
+from tcms.testcases.models import TestCase, TestCasePlan
+from tcms.testcases.models import Bug, BugSystem
 from tcms.testcases.forms import AUTOMATED_SERCH_CHOICES
 from tcms.testplans.models import TestPlan
 from tcms.testruns.models import TestCaseRun
@@ -20,6 +20,7 @@ from tcms.testruns.models import TestRun
 from tcms.core.db import GroupByResult
 from tcms.management.models import Build
 from tcms.management.models import Tag
+from tcms.issuetracker.types import IssueTrackerType
 
 __all__ = (
     'CustomDetailsReportData',
@@ -196,6 +197,22 @@ class ProductComponentReportData:
             total[row['case__component']] = row['total_count']
         return total
 
+def get_start_date(product_id, version_id=None):
+    dlist = []
+    if version_id is None:
+        testruns = TestRun.objects.filter(
+            plan__product=product_id
+        ).order_by('start_date')
+    else:
+        testruns = TestRun.objects.filter(
+            plan__product=product_id,
+            product_version=version_id
+        ).order_by('start_date')
+    if len(testruns):
+        sdate = testruns[0].start_date.date()
+    else:
+        sdate = datetime.date.today()
+    return sdate
 
 class ProductVersionReportData:
     """Report data by versions of a Product"""
@@ -272,6 +289,23 @@ class ProductVersionReportData:
         return total
 
     @staticmethod
+    def case_plans_subtotal(product_id):
+        """
+        :param product_id: ID of the Product
+        :type product_id: number
+        """
+        total = {}
+        test_cases = TestCasePlan.objects.filter(
+            plan__product=product_id
+        ).values('plan__product_version').annotate(
+            total_count=Count('pk')
+        ).order_by('plan__product_version')
+
+        for test_case in test_cases:
+            total[test_case['plan__product_version']] = test_case['total_count']
+        return total
+
+    @staticmethod
     def case_runs_subtotal(product_id, condition=None):
         """
         :param product_id: ID of the Product
@@ -311,6 +345,157 @@ class ProductVersionReportData:
 
         return subtotal
 
+    @staticmethod
+    def case_runs_date_list(product_id, version_id, is_run_base=0, step=1):
+        sdate = get_start_date(product_id, version_id)
+        clist = []
+        plan_list = []
+        date = sdate
+        if is_run_base:
+            total = TestCaseRun.objects.filter(
+                        run__plan__product=product_id,
+                        run__plan__product_version=version_id).count()
+        else:
+            query = TestPlan.objects.filter(product=product_id, product_version=version_id).order_by("plan_id")
+            for plan in query:
+                plan_list.append(plan.plan_id)
+            total = TestCasePlan.objects.filter(
+                        plan__in=plan_list).count()
+        print("total:%d"%total)
+        if not total:
+            return clist
+        while date <= (datetime.date.today() + datetime.timedelta(days=step)):
+            subtotal = {}
+            if is_run_base:
+                test_runs_list = TestCaseRun.objects.filter(
+                            run__plan__product=product_id,
+                            run__plan__product_version=version_id,
+                            close_date__lte = date).values('case_run_status__name'
+                ).annotate(status_count=Count('case_run_status__name'))
+                subtotal['PASSED'] = 0
+                subtotal['FAILED'] = 0
+                subtotal['IDLE'] = 0
+                subtotal['RUNNING'] = 0
+                subtotal['BLOCKED'] = 0
+                for row in test_runs_list:
+                    subtotal[row['case_run_status__name']] = row['status_count']
+            else:
+                test_runs_list = TestCaseRun.objects.filter(
+                            run__plan__product=product_id,
+                            run__plan__product_version=version_id,
+                            close_date__lte = date).order_by("close_date").values()
+                #print(test_runs_list)
+                subtotal.update(annotate_cases(test_runs_list))
+            subtotal['TOTAL'] = total
+            subtotal['date'] = date.strftime('%Y-%m-%d')
+            clist.append(subtotal)
+            date += datetime.timedelta(days=step)
+
+        return clist
+
+def annotate_cases(tclist):
+    #{'id': 6, 'name': 'BLOCKED'}, 
+    #{'id': 7, 'name': 'ERROR'}, 
+    #{'id': 5, 'name': 'FAILED'}, 
+    #{'id': 1, 'name': 'IDLE'}, 
+    #{'id': 4, 'name': 'PASSED'}, 
+    #{'id': 3, 'name': 'PAUSED'}, 
+    #{'id': 2, 'name': 'RUNNING'}, 
+    #{'id': 8, 'name': 'WAIVED'}
+    length = len(tclist)-1
+    exist_tc = {}
+    pass_cnt = 0
+    fail_cnt = 0
+    block_cnt = 0
+    idle_cnt = 0
+    running_cnt = 0
+    for i in range(length,-1,-1):
+        if(tclist[i]['case_id'] not in exist_tc):
+            if tclist[i]['case_run_status_id'] in [6]:
+                block_cnt += 1
+                exist_tc[tclist[i]['case_id']] = 1
+            elif tclist[i]['case_run_status_id'] in [5]:
+                fail_cnt += 1
+                exist_tc[tclist[i]['case_id']] = 1
+            elif tclist[i]['case_run_status_id'] in [4]:
+                pass_cnt += 1
+                exist_tc[tclist[i]['case_id']] = 1
+            elif tclist[i]['case_run_status_id'] in [2]:
+                running_cnt += 1
+                exist_tc[tclist[i]['case_id']] = 1
+            else:
+                idle_cnt += 1
+                exist_tc[tclist[i]['case_id']] = 1
+
+    return {'PASSED':pass_cnt,'FAILED':fail_cnt,'BLOCKED':block_cnt, 
+            'RUNNING':running_cnt, 'IDLE': idle_cnt}
+
+class ProductReportData:
+
+    @staticmethod
+    def bug_trend(product, step=7):
+        bug_system = BugSystem.objects.get(name=product.tracker_type)
+        tracker = IssueTrackerType.from_name(bug_system.tracker_type)(bug_system)
+        return tracker.gen_bug_trend_data({'product':product.bug_system_product,'delta':step})
+
+    @staticmethod
+    def case_plan_status(product_id):
+        query = TestPlan.objects.filter(product=product_id).order_by("plan_id")
+    
+        total_plans_cnt = []
+        single_plans_cnt = []
+    
+        for i in range(len(query)):
+            single_cnt = {}
+            plan_tclist = TestCaseRun.objects.filter(
+                        run__plan=query[i].plan_id).order_by("case_run_id").values()
+            single_cnt.update(annotate_cases(plan_tclist))
+            single_cnt['TOTAL'] = TestCasePlan.objects.filter(plan = query[i].plan_id).count()
+            single_cnt['name'] = query[i].name
+            single_cnt['IDLE'] = single_cnt['IDLE']
+            single_plans_cnt.append(single_cnt)
+        return single_plans_cnt
+
+    @staticmethod
+    def case_runs_date_list(product_id, is_run_base=1, step=1):
+        sdate = get_start_date(product_id)
+        clist = []
+        plan_list = []
+        date = sdate
+        
+        if is_run_base:
+            total = TestCaseRun.objects.filter(
+                            run__plan__product=product_id).count()
+        else:
+            query = TestPlan.objects.filter(product=product_id).order_by("plan_id")
+            for plan in query:
+                plan_list.append(plan.plan_id)
+            total = TestCasePlan.objects.filter(
+                        plan__in=plan_list).count()
+        while date <= (datetime.date.today() + datetime.timedelta(days=step)):
+            subtotal = {}
+            if is_run_base:
+                test_runs_list = TestCaseRun.objects.filter(
+                            run__plan__product=product_id,
+                            close_date__lte = date).values('case_run_status__name'
+                ).annotate(status_count=Count('case_run_status__name'))
+                subtotal['PASSED'] = 0
+                subtotal['FAILED'] = 0
+                subtotal['IDLE'] = 0
+                subtotal['RUNNING'] = 0
+                subtotal['BLOCKED'] = 0
+                for row in test_runs_list:
+                    subtotal[row['case_run_status__name']] = row['status_count']
+            else:
+                test_runs_list = TestCaseRun.objects.filter(
+                            run__plan__product=product_id,
+                            close_date__lte = date).order_by("close_date").values()
+                subtotal.update(annotate_cases(test_runs_list))                
+            subtotal['TOTAL'] = total            
+            subtotal['date'] = date.strftime('%Y-%m-%d')
+            clist.append(subtotal)
+            date += datetime.timedelta(days=step)
+        return clist
 
 class CustomReportData:
     """Data for custom report

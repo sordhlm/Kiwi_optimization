@@ -2,9 +2,11 @@
 """
     Django settings for devel env.
 """
-
+import pymysql
+pymysql.install_as_MySQLdb()
 import os
 from .product import *  # noqa: F403
+
 
 # Debug settings
 DEBUG = True
@@ -12,13 +14,21 @@ DEBUG = True
 # Database settings
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/mnt/nvme/weili/10KIWI_QA/db/kiwi.devel.sqlite',  # nosec:B108:hardcoded_tmp_directory
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': '',
-        'PORT': '',
-    }
+        # 'ENGINE': 'django.db.backends.sqlite3',
+        # 'NAME': '/home/nvme/weili/10KIWI_QA/db/test-kiwi.devel.sqlite',  # nosec:B108:hardcoded_tmp_directory
+        # 'USER': 'root',
+        # 'PASSWORD': '',
+        # 'HOST': '',
+        # 'PORT': '',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'kiwi_tcms',  # nosec:B108:hardcoded_tmp_directory
+        'USER': 'tester',
+        'PASSWORD': 'Cnex!321',
+        'HOST': '172.29.129.8',
+        'PORT': '3306',
+        'CONN_MAX_AGE': 5*60,
+        'OPTIONS':{'charset': 'utf8mb4'}
+    },
 }
 
 # django-debug-toolbar settings

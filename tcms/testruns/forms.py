@@ -11,6 +11,12 @@ from tcms.testcases.models import TestCase
 from .models import TestRun, TestCaseRunStatus
 
 
+class DocumentForm(forms.Form):
+    docfile = forms.FileField(
+        # label='Select a file',
+        help_text='bin file for fw update'
+    )
+
 class BaseRunForm(forms.Form):
     summary = forms.CharField(max_length=255)
     manager = UserField()

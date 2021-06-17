@@ -2,7 +2,9 @@
 {% load static %}
 
 {% block subtitle %}{{ test_run.summary }}{% endblock %}
-
+{% block custom_stylesheet %}
+    <link rel="stylesheet" href="{% static 'patternfly/dist/css/patternfly-additions.css' %}">
+{% endblock %}
 {% block custom_javascript %}
 <script type="text/javascript" src="{% static 'js/testrun_actions.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/testcase_actions.js' %}"></script>
@@ -173,18 +175,19 @@ jQ(function() {
     
 	{% include 'run/status_statistics.html' %}
 	<div class="node_list" style="width:860px; position:absolute;margin-left:1040px">
-		<form id="form_updatefw" class="form-horizontal" method="POST">
+		<form id="form_updatefw" class="form-horizontal" enctype="multipart/form-data" method="POST">
 			<span>Update FW: </span>
-			<input type="text" id="bin_file" name="bin_file">
+			<input type="file" id="bin_file" name="bin_file">
 			<button type="submit" id="btn_upload">Update</button>
 		</form>
 		<div class="nodeinfo" style="overflow-y:auto; height:180px">
 			<table class="list_node" id="id_node" cellspacing="0" cellspan="0" style="border:1px solid #7b777780">
 				<thead>
-					<th width="20">
+					<th width="10">
 						<input id="id_check_all_node_button" type="checkbox" title="Select all nodes/Select none nodes" />
 					</th>
-					<th width="40">Node </th>
+					<th width="15">On/Off </th>
+					<th width="35">Node </th>
 					<th width="10">DID </th>
 					<th width="10">Slot </th>
 					<th width="20" style='text-align:center'>Status</th>
@@ -195,6 +198,9 @@ jQ(function() {
 					<tr class="{% cycle 'odd' 'even' %}">
 						<td>
 							<input type="checkbox" name="node" value="{{ node.ip }}" title="Select/Unselect" />
+						</td>
+						<td class="case_title expandable" id="online_status">
+							<span class="pficon pficon-{{node.state}}"></span>
 						</td>
 						<td class="case_title expandable" id="node_ip">
 							<a href="{% url "admin:management_node_change" node.id %}"">{{node.ip}}</a>

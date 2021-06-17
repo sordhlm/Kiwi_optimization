@@ -1,5 +1,36 @@
 {# Expect a GroupByResult object #}
+{% block custom_javascript %}
+<script type="text/javascript">
+    var version = {{version.id}};
+</script>
+{% endblock %}
 {% load report_tags %}
+<div id="progress_container" style="height: 450px; width: 98%;">
+	<div class="data_select" style="margin:10px">
+    	<label class="col-md-1 col-lg-1" for="id_version_type" style="float:left">Data Source</label>
+    	<div class="col-md-1 col-lg-1" style="float:left">
+    	    <select class="form-control selectpicker" id="id_version_type" style="width:130px">
+    	        <option value="0">Case Based</option>
+    	        <option value="1">Run Based</option>
+    	    </select>
+    	</div>
+    	<label class="col-md-1 col-lg-1" for="id_version_progress_step" style="float:left;margin-left:10px">Progress Delta</label>
+    	<div class="col-md-1 col-lg-1">
+    	    <select class="form-control selectpicker" id="id_version_progress_step" style="width:100px">
+    	        <option value="1">1 Day</option>
+    	        <option value="2">2 Day</option>
+    	        <option value="3">3 Day</option>
+    	        <option value="4">4 Day</option>
+    	        <option value="5">5 Day</option>
+    	        <option value="6">6 Day</option>
+    	        <option value="7">7 Day</option>
+    	    </select>
+    	</div>
+    </div>
+	<!--<canvas id="version_progress_trend" style="margin-left:5px; float:left; width:82%; height:400px"> </canvas>-->
+	<div id="version_progress_trend_container" style="margin:10px; height: 90%;"></div>
+</div>
+
 <table class="report_data report" border="0" cellspacing="1" cellpadding="0" width="80%">
 	<tr class="variety_pass">
 		<td>PASSED</td>

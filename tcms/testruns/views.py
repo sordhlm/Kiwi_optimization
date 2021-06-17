@@ -40,6 +40,8 @@ from tcms.testexecutor.types import TestExecutorType
 # from tcms.rest_client.rest_client import RestClient
 from production_rest_client.rest_client import RestClient
 from wkhtmltopdf.views import PDFTemplateView
+from tcms.testruns.forms import DocumentForm
+from tcms.testruns.models import Document
 
 class CustomPDF(PDFTemplateView, TestCaseRunDataMixin):
     filename = 'my_report_pdf.pdf'
@@ -288,11 +290,76 @@ def open_run_get_users(case_runs):
         pk__in=assignee_ids).values_list('pk', 'username')
     return (dict(testers.iterator()), dict(assignees.iterator()))
 
+def update_node_status(node):
+    executor_class = TestExecutorType.from_name(settings.RUNNER_NAME)
+    client = executor_class(node.ip, timeout=0.5)
+    node.state = client.check_status()
+    print("[update_node_status] node state:%s"%node.state)
+    node.save()
+
 def update_runnig_test_status(case_run):
     if case_run.runkey:
         executor_class = TestExecutorType.from_name(settings.RUNNER_NAME)
         client = executor_class(case_run.node.ip, timeout=0.5)
         case_run.markResult(client.query_test_result(case_run.runkey))
+
+@require_POST
+def update_all_nodes(request):
+    nodes = Node.objects.all()
+    #print(nodes)
+
+    dst = []
+    executor_class = TestExecutorType.from_name("NodeMonitor")
+    client = executor_class()
+    for node in nodes:
+        info = client.get_info(node.ip)
+        #update_node_status(node)
+        if info:
+            node_up = node.update(info[0])
+        else:
+            node_up = node
+        dst.append(node_up.serialize())
+    client.release_sql()
+    #return HttpResponseRedirect(reverse('core-views-index'))
+    return JsonResponse({'ok':1, 'result': dst})
+
+@require_POST
+def update_tag(request):
+    ip = request.POST.get('ip')
+    tag = request.POST.get('text')
+    key = request.POST.get('key')
+    node = Node.objects.get(ip=ip)
+    print(node)
+    print(ip)
+    print(tag)
+    node.update({key:tag})
+    return JsonResponse({'ok':1, 'msg': 'update done'})
+
+@require_POST
+def get_test_detail(request):
+    ip = request.POST.get('ip')
+    dst = {}
+    #print(ip)
+    executor_class = TestExecutorType.from_name("NodeMonitor")
+    client = executor_class()
+
+    test_detail = client.get_test_detail(ip)
+    test_usage = client.get_node_usage(ip)
+    #update_node_status(node)
+    #print(test_detail)
+    #print("##############")
+    #print(test_usage)
+    context = {
+        'detail': test_detail,
+        'usage': test_usage
+    }
+    client.release_sql()
+    return JsonResponse(context)
+
+@require_POST
+def get_test_usage(request):
+    dst = {}
+    return JsonResponse({'ok':1, 'result': dst})
 
 @require_GET
 def get(request, run_id, template_name='run/get.html'):
@@ -322,22 +389,27 @@ def get(request, run_id, template_name='run/get.html'):
     # 7. get tags
     # Get the list of testcases belong to the run
     test_cases = []
-    node_list = [] 
+    node_list = []
     case_run_status_name = TestCaseRunStatus.get_names()
     for test_case_run in test_case_runs:
         test_cases.append(test_case_run.case_id)
         if test_case_run.node:
-            if (test_case_run.node.ip is not "--default--"):
-                node_list.append(test_case_run.node)
             if settings.REST_API_RUN:
                 if ('RUNNING' in case_run_status_name[test_case_run.case_run_status_id]) or \
                     ('PAUSED' in case_run_status_name[test_case_run.case_run_status_id]):
+                    print("case:%s, ip:%s"%(test_case_run.case_id,test_case_run.node.ip))
                     update_runnig_test_status(test_case_run)
-  
+            if (test_case_run.node.ip is not "--default--"):
+                node_list.append(test_case_run.node)
+
     tags = Tag.objects.filter(case__in=test_cases).values_list('name', flat=True)
     tags = list(set(tags))
     tags.sort()
-    
+    node_list = set(node_list)
+    print(node_list)
+    for node in node_list:
+        update_node_status(node)
+        print("node state:%s"%node.state)
     def walk_case_runs():
         """Walking case runs for helping rendering case runs table"""
         priorities = dict(Priority.objects.values_list('pk', 'value'))
@@ -347,11 +419,11 @@ def get(request, run_id, template_name='run/get.html'):
         #for test_case_run in test_case_runs:
         #    test_case_run_pks.append(test_case_run.pk)
         comments_subtotal = open_run_get_comments_subtotal(test_cases)
-        
+
         for case_run in test_case_runs:
             #node = nodes.get(case_run.node.id) if case_run.node else "Not Configured"
-            node = case_run.node if case_run.node else Node.objects.get(pk=1)
-              
+            node = case_run.node if case_run.node else None
+
             yield (case_run,
                    node,
                    testers.get(case_run.tested_by_id, None),
@@ -372,9 +444,10 @@ def get(request, run_id, template_name='run/get.html'):
         'case_own_tags': tags,
         'bug_trackers': BugSystem.objects.all(),
         'nodes': Node.objects.all(),
-        'choosen_nodes': set(node_list),
+        'choosen_nodes': node_list,
         'assignees':assignees
     }
+    print("finish generate data")
     return render(request, template_name, context_data)
 
 
@@ -578,10 +651,10 @@ def bug(request, case_run_id, template_name='run/execute_case_run.html'):
                         msg = str(error) if str(error) else 'Failed to add bug %s' % bug_id
                         response = {'rc': 1, 'response': msg}
                 else:
-                    response = {'rc': 1, 'response': url} 
+                    response = {'rc': 1, 'response': url}
             else:
                 response = {'rc': 1, 'response': 'Enable Redmine reporting to this Issue Tracker '
-                                             'by configuring its base_url!'}        
+                                             'by configuring its base_url!'}
             return JsonResponse(response)
 
         def remove(self):
@@ -630,32 +703,58 @@ def bug(request, case_run_id, template_name='run/execute_case_run.html'):
 
     return func()
 
+def handle_uploaded_file(file):
+    time_now = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+    save_name = "%s_%s"%(time_now, file)
+    with open('%s/%s'%(settings.FW_BIN_SAVE_PATH, save_name), 'wb+') as destination:
+        for chunk in file.chunks():
+            destination.write(chunk)
+    print("%s/%s"%(settings.FW_BIN_SAVE_PATH, save_name))
+    return "%s/%s"%(settings.FW_BIN_SAVE_PATH, save_name)
+
 @require_POST
 def updateFW(request):
-    file = request.POST.get("file")
-    nodes = request.POST.getlist("iplist[]")
-    slot = request.POST.getlist("slotlist[]")
-    dev = request.POST.getlist("idlist[]")
-    #print("**Start Update FW ...%s"%file)
-    #print(nodes)
-    #print(dev)
-    #print(slot)
+    # print(request.__dict__)
+    file = request.FILES["bin_file"]
+    ip = request.POST.getlist("ip")
+    slot = request.POST.getlist("slot")
+    did = request.POST.getlist("did")
+    nodes = []
+    ip = ip[0].split(",")
+    did = did[0].split(",")
+    slot = slot[0].split(",")
+    for i in range(len(ip)):
+        node = {"ip": ip, "did": slot, "slot": did}
+        node["ip"] = ip[i]
+        node["did"] = did[i]
+        node["slot"] = slot[i]
+        nodes.append(node)
+    print(nodes)
+    if request.is_ajax():
+        fw_file = handle_uploaded_file(file)
+        # form = DocumentForm(request.POST, request.FILES)
+        # if form.is_valid():
+        #     print("this is form \n")
+        #     newdoc = Document(docfile=request.FILES['bin_file'])
+        #     newdoc.save()
+        # print(file)
+    print("\n\n**Start Update FW ...%s\n\n"%file)
     result = {}
     if settings.REST_API_RUN:
-        #for node in nodes:
         for i in range(len(nodes)):
             executor_class = TestExecutorType.from_name(settings.RUNNER_NAME)
-            client = executor_class(nodes[i], timeout=5)
-            did = 1 if 'None' in dev[i] else eval(dev[i])
+            client = executor_class(nodes[i]["ip"], timeout=5)
+            device_id = 1 if 'None' in did[i] else eval(did[i])
             slot_id = 2 if 'None' in slot[i] else eval(slot[i])
-            #print("did: %d, slot: %d"%(did, slot_id))
-            ret = client.update_fw(file, device_index=did, slot=slot_id)
-            #print(ret)
-            result[nodes[i]] = ret
+            # print("did: %d, slot: %d"%(device_id, slot_id))
+            ret = client.update_fw(fw_file, device_index=device_id, slot=slot_id)
+            print(ret)
+            result[nodes[i]["ip"]] = ret
     else:
         result = "No Runner Found"
 
     return JsonResponse({'result': result})
+
 
 @require_POST
 def clone(request, run_id):
@@ -851,7 +950,7 @@ class AddCasesToRunView(View):
         #default_cate = Category.objects.get(product=test_run.plan.product, name='--default--')
         #category = Category.objects.filter(product=test_run.plan.product)
         #tree = genNodeList(test_run.plan,default_cate,category)
-        
+
         rows = TestCasePlan.objects.values(
             'case',
             'case__category__suite__product_id',
@@ -870,7 +969,7 @@ class AddCasesToRunView(View):
         # current TestRun so we can mark them as disabled and not allow them to
         # be selected
         test_case_runs = TestCaseRun.objects.filter(run=run_id).values_list('case', flat=True)
-        
+
         data = {
             'product_id':rows[0]["case__category__suite__product_id"],
             'test_run': test_run,
@@ -1013,16 +1112,64 @@ class UpdateCaseRunStatusView(View):
     def post(self, request):
         status_id = int(request.POST.get('status_id'))
         object_ids = request.POST.getlist('object_pk[]')
-
+        case_run_status_name = TestCaseRunStatus.get_names()
         for caserun_pk in object_ids:
             test_case_run = get_object_or_404(TestCaseRun, pk=int(caserun_pk))
-            test_case_run.case_run_status_id = status_id
             test_case_run.tested_by = request.user
             test_case_run.close_date = datetime.now()
             test_case_run.notes = ""
-            test_case_run.save()
+            ret = self.manageTest(test_case_run, status_id)
+            if ret['result']:
+                test_case_run.case_run_status_id = status_id
+                test_case_run.notes = ret['msg']
+                test_case_run.save()
 
         return JsonResponse({'rc': 0, 'response': 'ok'})
+
+    def manageTest(self, test_case_run, status_id):
+        if not settings.REST_API_RUN:
+            return {'result':1, 'msg':'No Runner is configured'}
+        case_run_status_name = TestCaseRunStatus.get_names()
+        pre_stat = case_run_status_name[test_case_run.case_run_status_id]
+        cur_stat = case_run_status_name[status_id]
+        if ('PAUSED' in pre_stat) or ('RUNNING' in pre_stat):
+            if 'RUNNING' in cur_stat:
+                return {'result':1, 'msg':'Test is already running'}
+            elif 'IDLE' in cur_stat:
+                return self.cancelTest(test_case_run)
+        else:
+            if 'RUNNING' in cur_stat:
+                return self.runTest(test_case_run)
+        return {'result':1, 'msg':'No available Test operation'}
+
+    def runTest(self, test_case_run):
+        host = test_case_run.node.ip
+        test_case_script = test_case_run.case.script
+        if test_case_run.node:
+           if test_case_script != "" and host != "":
+                executor_class = TestExecutorType.from_name(settings.RUNNER_NAME)
+                client = executor_class(host, timeout=10)
+                test_case_run.markResult(client.run_test_in_async_mode(test_case_script))
+                return {'result':0, 'msg':'ok'}
+           else:
+               #print("Run case Error. please check node(ip) or case script")
+               return {'result':1, 'msg':'No IP or Script'}
+        else:
+             return {'result':1, 'msg':'No Node'}
+
+    def cancelTest(self, test_case_run):
+        if test_case_run.node:
+            host = test_case_run.node.ip
+            print("[CancelTest] host:%s, key:%s"%(host, test_case_run.runkey))
+            if (host != "") and (test_case_run.runkey):
+                executor_class = TestExecutorType.from_name(settings.RUNNER_NAME)
+                client = executor_class(host, timeout=5)
+                test_case_run.markResult(client.cancel_test(test_case_run.runkey))
+                return {'result':0, 'msg':'ok'}
+            else:
+                return {'result':1, 'msg':'No IP or Key'}
+        else:
+            return {'result':1, 'msg':'No Node'}
 
 @method_decorator(permission_required('testruns.change_testcaserun'), name='dispatch')
 class UpdateCaseNodeView(View):
@@ -1063,48 +1210,3 @@ class UpdateCaseAssignView(View):
         return JsonResponse({'rc': 0, 'response': 'ok'})
 
 
-@method_decorator(permission_required('testruns.change_testcaserun'), name='dispatch')
-class RunCaseThenUpdateStatus(View):
-    """Updates TestCaseRun.case_run_status_id. Called from the front-end."""
-
-    http_method_names = ['post']
-
-    def post(self, request):
-        import time
-        object_ids = request.POST.getlist('object_pk[]')
-        #print(object_ids)
-        for caserun_pk in object_ids:
-            test_case_run = get_object_or_404(TestCaseRun, pk=int(caserun_pk))
-            #print("case_id:%d"%test_case_run.case.case_id)
-            # test_case_run.tested_by = request.user
-            # test_case_run.close_date = datetime.now()
-            # test_case_run.save()
-            host = test_case_run.node.ip
-            test_case_script = test_case_run.case.script
-            if test_case_run.node:
-                if test_case_script != "" and host != "":
-                    if settings.REST_API_RUN:
-                        executor_class = TestExecutorType.from_name(settings.RUNNER_NAME)
-                        client = executor_class(host, timeout=5)
-                        test_case_run.tested_by = request.user
-                        test_case_run.close_date = datetime.now()
-                        test_case_run.markResult(client.run_test_in_async_mode(test_case_script))
-                    else:
-                        print("Runner not ready")
-                else:
-                    print("Run case Error. please check node(ip) or case script")
-        return JsonResponse({'rc': 0, 'response': 'ok'})
-
-@require_POST
-def cancelTest(request):
-    object_ids = request.POST.getlist('object_pk[]')
-    for caserun_pk in object_ids:
-        test_case_run = get_object_or_404(TestCaseRun, pk=int(caserun_pk))
-        if test_case_run.node:
-            host = test_case_run.node.ip
-            if (settings.REST_API_RUN) and (host != ""):
-                executor_class = TestExecutorType.from_name(settings.RUNNER_NAME)
-                client = executor_class(host, timeout=5)
-                test_case_run.markResult(client.cancel_all_test())
-
-    return JsonResponse({'rc': 0, 'response': 'ok'})

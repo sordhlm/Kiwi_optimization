@@ -4,10 +4,11 @@ import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
 from django.db.models import Count, OuterRef, Subquery
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import render
 from django.views.generic import TemplateView
 from django.views.generic import View
+from django.views.decorators.http import require_POST
 
 from tcms.management.models import Priority
 from tcms.management.models import Product
@@ -19,6 +20,7 @@ from tcms.report.forms import TestingReportCaseRunsListForm
 from tcms.report.data import CustomDetailsReportData
 from tcms.report.data import CustomReportData
 from tcms.report.data import ProductBuildReportData
+from tcms.report.data import ProductReportData
 from tcms.report.data import ProductComponentReportData
 from tcms.report.data import ProductVersionReportData
 from tcms.report.data import TestingReportByCasePriorityData
@@ -31,7 +33,7 @@ from tcms.report.data import TestingReportCaseRunsData
 from tcms.report.forms import CustomSearchForm
 from tcms.search import remove_from_request_path
 from tcms.issuetracker.types import IssueTrackerType
-
+from tcms.testexecutor.types import TestExecutorType
 from .forms import CustomSearchDetailsForm
 
 
@@ -104,7 +106,7 @@ def overview(request, product_id, template_name='report/overview.html'):
         single_plans_cnt.append(single_cnt)
 
 
-    bug_system = BugSystem.objects.get(pk=3)
+    bug_system = BugSystem.objects.get(name=product.tracker_type)
     tracker = IssueTrackerType.from_name(bug_system.tracker_type)(bug_system)
     bug_trend = tracker.gen_bug_trend_data({'product':product.bug_system_product,'delta':'1'})
 
@@ -119,6 +121,102 @@ def overview(request, product_id, template_name='report/overview.html'):
         'bug_trend':json.dumps(bug_trend)
     }
     return render(request, template_name, context_data)
+
+def filter_result(results, confirm):
+    ret = []
+    text = ""
+    if confirm == 2:
+        return 'All Data', results
+    else:
+        text = 'Confirm Data' if confirm else 'UNConfirm Data'
+    for result in results:
+        print(result)
+        print(result['confirm'])
+        print(confirm)
+        print(result['confirm'] == confirm)
+        if result['confirm'] == confirm:
+            ret.append(result)
+    return text, ret
+
+def performance_report(request, template_name='report/performance.html'):
+    executor_class = TestExecutorType.from_name('PerformanceReport')
+    client = executor_class()
+    #results = client.query_group()
+    #print(results)
+    #for i in results:
+    #    print(i['summary'])
+    text = ['UNCONFIRM DATA', 'CONFIRM DATA', 'ALL DATA']
+    confirm = (request.GET.get("confirm"))
+    if confirm not in ['0','1','2']:
+        confirm = '2'
+        #return JsonResponse({'ok':0, 'msg': 'Not valid confirm flag'})
+    confirm = int(confirm)
+    #confirm_text = 'ALL_DATA'
+    #print(confirm)
+    #if confirm:
+    #    confirm_text, results = filter_result(results, confirm)
+
+    keys = request.GET.getlist("keys")
+    groups = []
+    if keys:
+        groups = client.query_group(keys)   
+    #print(groups)  
+    tree_data = client.query_tree_group(keys, confirm)
+    #print(tree_data)
+    context_data = {
+        #'results': results,
+        'groups': groups,
+        'tree_data': tree_data,
+        'confirm': text[confirm]
+    }
+    return render(request, template_name, context_data)
+
+@require_POST
+def delete_perf_group(request):
+    #print("query group")
+    keys = request.POST.getlist("keys[]")
+    #print(keys)
+    executor_class = TestExecutorType.from_name('PerformanceReport')
+    client = executor_class()
+    client.delete_group(keys)
+    #print(result)
+    return JsonResponse({'result': 0})
+
+@require_POST
+def query_perf_group(request):
+    #print("query group")
+    keys = request.POST.getlist("keys[]")
+    #print(keys)
+    executor_class = TestExecutorType.from_name('PerformanceReport')
+    client = executor_class()
+    result = client.query_group(keys)
+    #print(result)
+    return JsonResponse({'result': result})
+
+@require_POST
+def query_perf_result(request):
+    #print("query result")
+    executor_class = TestExecutorType.from_name('PerformanceReport')
+    client = executor_class()
+    keys = request.POST.getlist("keys[]")
+    #print(keys)
+    if(len(keys) > 50):
+        return JsonResponse({'result': 'Load too many results!', 'ok':0})
+    result = client.query_result(keys)
+    #print(result)
+    return JsonResponse({'result': result, 'ok':1})
+
+@require_POST
+def query_perf_detail(request):
+    executor_class = TestExecutorType.from_name('PerformanceReport')
+    id = request.POST.get('key')
+    print(id)
+    client = executor_class()
+    result = client.query_detail(id)
+    if result:
+        return JsonResponse({'result': result, 'ok':1})
+    else:
+        return JsonResponse({'result': {}, 'ok':0})
 
 def calReportData(tclist):
     #{'id': 6, 'name': 'BLOCKED'}, 
@@ -148,6 +246,83 @@ def calReportData(tclist):
                 exist_tc[tclist[i]['case_id']] = 1
     return {'PASSED':pass_cnt,'FAILED':fail_cnt,'BLOCKED':block_cnt}
 
+@require_POST
+def update_bug_trend(request):
+    product = request.POST.get('product_id')
+    delta = request.POST.get('step')
+    print(product)
+    product = Product.objects.only('name').get(pk=product)
+    result = ProductReportData.bug_trend(product, int(delta))
+    print(result)
+    return JsonResponse({'result': result})
+
+@require_POST
+def update_progress_trend(request):
+    product = request.POST.get('product_id')
+    delta = request.POST.get('step')
+    is_run_base = request.POST.get('is_run_base')
+    print("is_run_base: %s"%is_run_base)
+    version_id = request.POST.get('version_id')
+    product = Product.objects.only('name').get(pk=product)
+    print("product: %s"%product)
+    print("version: %s"%version_id)
+    if version_id:
+        result = ProductVersionReportData.case_runs_date_list(
+                product, version_id, is_run_base=int(is_run_base), step=int(delta))
+    else:
+        result = ProductReportData.case_runs_date_list(product, int(is_run_base), int(delta))
+    #print(result)
+    return JsonResponse({'result': result})
+
+class ProductReport(TemplateView, ProductReportData):
+    template_name = 'report/overview.html'
+    product = None
+
+    def get(self, request, *args, **kwargs):
+        try:
+            self.product = Product.objects.only('name').get(pk=kwargs.get('product_id'))
+        except (TypeError, ValueError, ObjectDoesNotExist) as error:
+            raise Http404(error)
+
+        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        product_id = self.product.pk
+        #print("product_id:%d"%product_id)
+        query = TestRun.objects.filter(plan__product=product_id)
+        runs_count = {
+            'TOTAL': query.count(),
+            'finished': query.filter(stop_date__isnull=False).count(),
+        }
+        runs_count['running'] = runs_count['TOTAL'] - runs_count['finished']
+    
+        query = TestCaseRun.objects.filter(run__plan__product=product_id)
+        caserun_status_count = {}
+        total = 0
+        for row in TestCaseRun.objects.filter(
+                run__plan__product=product_id
+            ).values('case_run_status__name').annotate(
+                status_count=Count('case_run_status__name')):
+            caserun_status_count[row['case_run_status__name']] = row['status_count']
+            total += row['status_count']
+        caserun_status_count['TOTAL'] = total
+        case_total = TestCase.objects.filter(category__suite__product=product_id).count()
+        total_plans_cnt = self.case_runs_date_list(product_id, is_run_base=0)
+        #print(total_plans_cnt)
+        data = super().get_context_data(**kwargs)
+        data.update({
+            'SUB_MODULE_NAME': 'overview',
+            'product': self.product,
+            'runs_count': runs_count,
+            'case_run_count': caserun_status_count,
+            'case_total':case_total,
+            'total_plan_count':json.dumps(total_plans_cnt),
+            'single_plan_count':self.case_plan_status(product_id),
+            'bug_trend':json.dumps(self.bug_trend(self.product)),
+            #'runs_trend':json.dumps(self.case_runs_date_list(product_id=product_id))
+        })
+
+        return data
 
 class ProductVersionReport(TemplateView, ProductVersionReportData):
     template_name = 'report/version.html'
@@ -170,10 +345,13 @@ class ProductVersionReport(TemplateView, ProductVersionReportData):
         product_id = self.product.pk
 
         case_runs_status_subtotal = None
+        case_count_list = None
         selected_version = getattr(self, 'selected_version', None)
         if selected_version is not None:
             case_runs_status_subtotal = self.case_runs_status_subtotal(
                 product_id, selected_version.pk)
+            case_count_list = self.case_runs_date_list(
+                product_id, selected_version.pk, is_run_base=1)
 
         data = super().get_context_data(**kwargs)
         data.update({
@@ -182,6 +360,7 @@ class ProductVersionReport(TemplateView, ProductVersionReportData):
             'versions': self._get_updated_versions(product_id),
             'version': selected_version,
             'case_runs_status_subtotal': case_runs_status_subtotal,
+            'case_count_list': json.dumps(case_count_list)
         })
 
         return data
@@ -194,6 +373,7 @@ class ProductVersionReport(TemplateView, ProductVersionReportData):
         finished_runs_subtotal = self.runs_subtotal(product_id, False)
         cases_subtotal = self.cases_subtotal(product_id)
         case_runs_subtotal = self.case_runs_subtotal(product_id)
+        #case_runs_subtotal = self.case_plans_subtotal(product_id)
         finished_case_runs_subtotal = self.finished_case_runs_subtotal(product_id)
         failed_case_runs_subtotal = self.failed_case_runs_subtotal(product_id)
 

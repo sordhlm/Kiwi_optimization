@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+{% load extra_filters %}
+{% block title %}{% trans "Search test cases" %}{% endblock %}
+
+{% block contents %}
+{% block custom_stylesheet %}
+<link rel="stylesheet" type="text/css" href="{% static 'style/base.css' %}" media="screen" />
+
+{% endblock %}
+<!DOCTYPE html>
+<div class="loading_div" id="loading_div">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="loader">
+                        <div class="loading-1"></div>
+                        <div class="loading-2">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="container-fluid container-cards-pf">
+
+
+    <div class="panel panel-default" style="margin-top: 40px; width: 98%">
+        <!-- Table HTML -->
+        <table class="table table-striped table-bordered table-hover" id="detailTable">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll" name="selectAll"></th>
+                    <th>{% trans "ID" %}</th>
+                    <th>{% trans "Summary" %}</th>
+                    <th>{% trans "Product" %}</th>
+                    <th>{% trans "Bandwidth" %}</th>
+                    <th>{% trans "Duration" %}</th>
+                    <th>{% trans "Date" %}</th>
+                </tr>
+            </thead>
+        </table>
+
+        {% include 'pagination.html' %}
+    </div>
+    <div id="perfContainer" class="progress_container" style="margin:50px; height: 400px; width: 98%; position: absolute;"></div>
+</div><!-- /container -->
+
+<!-- JavaScript that is used in this page -->
+<script src="{% static 'bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'bootstrap-select/dist/js/bootstrap-select.min.js' %}"></script>
+<script src="{% static 'js/jsonrpc.js' %}"></script>
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/pagination.js' %}"></script>
+<script src="{% static 'canvasjs/dist/canvasjs.min.js' %}"></script>
+
+<script type="text/javascript" src="{% static 'js/tcms_actions.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/testcase_actions.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/performance_report_actions.js' %}"></script>
+{% endblock %}

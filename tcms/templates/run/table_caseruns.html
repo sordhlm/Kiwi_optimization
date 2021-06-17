@@ -52,9 +52,13 @@
 				<!--	
 				{{ node }}
 				-->
+				{% if node %}
 				<a href="{% url "admin:management_node_change" node.id %}"" class="btn btn-lg btn-danger" id="node_pop" data-toggle="popover" data-container="body" title="{{node.ip}}" data-placement="right">
     			{{ node.name }}
 				</a>
+				{% else %}
+				<a class="link_tested_by">None</a>
+				{% endif %}
 			</td>
 			<td>
 				{% if tester %}

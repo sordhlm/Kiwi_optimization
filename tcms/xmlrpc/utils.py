@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from django.db.models import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist
 
 from tcms.management.models import Product
 

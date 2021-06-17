@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Machine Monitor" %}{% endblock %}
+
+{% block contents %}
+{% block custom_stylesheet %}
+<link rel="stylesheet" type="text/css" href="{% static 'style/base.css' %}" media="screen" />
+<link rel="stylesheet" type="text/css" href="{% static 'jstree/dist/themes/default/style.min.css' %}"/>
+{% endblock %}
+{% block custom_javascript %}
+
+<script type="text/javascript" src="{% static 'js/tcms_actions.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/node_manage.js' %}"></script>
+<script type="text/javascript" src="{% static 'datatables.net/js/jquery.dataTables.min.js'"></script>
+
+
+<script type="text/javascript">
+    //var results = {{results | safe}};
+    var nodes = {{node_list | safe}};
+    console.debug(nodes)
+</script>
+{% endblock %}
+
+
+<div class="container-fluid container-cards-pf">
+    <div class="panel panel-default col-sm-12 col-md-6 col-lg-6" style="padding:0; margin-right:1%">
+        <div class="panel-heading">
+            <strong>{% trans "Test Nodes" %}</strong>
+            
+            <button class="btn btn_node btn-default" id="id_add_node" style="margin-left:68%;width:10%">Add Node</button>   
+            <input placeholder="Search" type="search" class="gn-search" style="width:12%">         
+            <!--
+            <a href="#" id="id_add_node" style="float:right">
+                <span class="pficon pficon pficon-add-circle-o">{% trans "Add Node" %}</span>
+            </a>
+            -->
+        </div>
+        <table id="ParentTable" class="table table-bordered table-hover" style="background: white;width:100%;height:100%">
+            <thead>
+                <tr>
+                    <th></th>                    
+                    <th >{% trans "Name" %}</th>
+                    <th >{% trans "IP" %}</th>
+                    <th >{% trans "System" %}</th>
+                    <th >{% trans "Project" %}</th>
+                    <th >{% trans "Vendor" %}</th>
+                    <th >{% trans "FW" %}</th>
+                    <th >{% trans "Status" %}</th>
+                    <th >{% trans "Tag" %}</th>
+                    <th >{% trans "Description" %}</th>
+                    
+                </tr>
+            </thead>
+            <tbody>
+                <!--
+            {% for node in nodes %}
+                <tr class="node_tr">
+                    <td class="case_title expandable" id="node_name">
+                        <a href="{% url "admin:management_node_change" node.id %}"">{{node.name}}</a>
+                    </td>
+                    <td class="case_title expandable" id="node_ip">{{node.ip}}
+                    </td>
+                    <td class="case_title expandable" id="node_project">{{ node.project }}</td>
+                    <td class="case_title expandable" id="node_vendor">{{ node.vendor }}</td>
+                    <td class="case_title expandable" id="node_fw">{{ node.fw }}</td>
+                    <td class="case_title expandable" id="node_slot" value="{{node.state}}">{{node.state}}
+                    </td>
+                </tr>
+                
+            {% endfor %}
+        -->
+            </tbody>
+        </table>
+        <!--
+        <div class="panel-footer">
+            {% if nodes_count %}
+                {% blocktrans with total_count=nodes_count count=nodes|length %}
+                {{ nodes_count }} Node(s) exists .
+                {% endblocktrans %}
+
+            {% else %}
+                {% trans "There are no Registered Nodes" %}
+            {% endif %}
+        </div>
+    -->
+    </div> <!-- /panel -->
+    <div id="id_history_container" class="panel panel-default col-sm-12 col-md-5 col-lg-5" style="padding:0; margin-right:1%; display: none">
+        <table id="historyTable" class="table table-bordered table-hover" style="background: white;width:100%">
+            <thead>
+                <tr>                  
+                    <th>{% trans "Test_Name" %}</th>
+                    <th>{% trans "Start Time" %}</th>
+                    <th>{% trans "Duration" %}</th>
+                    <th>{% trans "Status" %}</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div><!-- /container -->
+{% endblock %}

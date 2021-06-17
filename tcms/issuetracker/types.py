@@ -170,12 +170,18 @@ class Redmine(IssueTrackerType):
         return url+'issues/'+str(redmine_issue.id), redmine_issue.id
 
     def gen_bug_trend_data(self, values):
-        issues = self.rpc.issue.filter(project_id=values['product'], sort='id', status_id='*')
-        now = datetime.datetime.now().date()
         date_label = []
         total_bugs = []
         open_bugs = []
         close_bugs = []
+        try:
+            project = self.rpc.project.get(values['product'])
+        except:
+            return {'date': date_label, 'total':total_bugs, 'open':open_bugs, 'close':close_bugs}
+
+        issues = self.rpc.issue.filter(project_id=values['product'], sort='id', status_id='*')
+        now = datetime.datetime.now().date()
+
         date = issues[0].created_on.date()
         while date < now:
             bopen = 0
@@ -194,7 +200,7 @@ class Redmine(IssueTrackerType):
             total_bugs.append(btotal)
             close_bugs.append(bclose)
             open_bugs.append(bopen)
-            date = date + datetime.timedelta(days=eval(values['delta']))
+            date = date + datetime.timedelta(days=values['delta'])
         return {'date': date_label, 'total':total_bugs, 'open':open_bugs, 'close':close_bugs}
 
 

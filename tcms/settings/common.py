@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import os.path
+import ldap
 from django.urls import reverse_lazy
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.messages import constants as messages
+from django_auth_ldap.config import LDAPSearch
+from django_auth_ldap.config import GroupOfNamesType
 import tcms
+import pymysql
+pymysql.install_as_MySQLdb()
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,16 +27,19 @@ SECRET_KEY = '^8y!)$0t7yq2+65%&_#@i^_o)eb3^q--y_$e7a_=t$%$1i)zuv'
 # Database settings
 DATABASES = {
     'default': {
+        # 'ENGINE': 'django.db.backends.sqlite3',
+        # 'NAME': '/home/nvme/weili/10KIWI_QA/db/kiwi.devel.sqlite',  # nosec:B108:hardcoded_tmp_directory
+        # 'USER': 'root',
+        # 'PASSWORD': '',
+        # 'HOST': '',
+        # 'PORT': '',
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('KIWI_DB_NAME', 'kiwi'),
-        'USER': os.environ.get('KIWI_DB_USER', 'kiwi'),
-        'PASSWORD': os.environ.get('KIWI_DB_PASSWORD', 'kiwi'),
-        'HOST': os.environ.get('KIWI_DB_HOST', ''),
-        'PORT': os.environ.get('KIWI_DB_PORT', ''),
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
-    },
+        'NAME': 'kiwi_tcms',  # nosec:B108:hardcoded_tmp_directory
+        'USER': 'tester',
+        'PASSWORD': 'Cnex!321',
+        'HOST': '172.29.129.8',
+        'PORT': '3306',
+    }
 }
 
 
@@ -78,7 +86,10 @@ DELETE_ATTACHMENTS_FROM_DISK = True
 
 # this is the main navigation menu
 MENU_ITEMS = [
-    (_('DASHBOARD'), reverse_lazy('core-views-index')),
+    (_('DASHBOARD'), [
+        (_('Test Status'), reverse_lazy('core-views-index')),
+        (_('Machine Status'), reverse_lazy('machine_monitor_system')),
+    ]),
     (_('TESTING'), [
         (_('New Test Plan'), reverse_lazy('plans-new')),
         ('-', '-'),
@@ -98,6 +109,7 @@ MENU_ITEMS = [
         (_('Overall report'), reverse_lazy('report-overall')),
         (_('Custom report'), reverse_lazy('report-custom')),
         (_('Testing report'), reverse_lazy('testing-report')),
+        (_('Performance report'), reverse_lazy('performance-report')),
     ]),
     (_('ADMIN'), [
         (_('Users and groups'), '/admin/auth/'),
@@ -164,6 +176,8 @@ PUBLIC_VIEWS = [
 # Config the name you have add in tcms/testexecutor/types.py
 REST_API_RUN = 1
 RUNNER_NAME = "CnexExecutor"
+
+FW_BIN_SAVE_PATH = "/home/nvme/weili/10KIWI_QA/fw_bin"
 
 SITE_ID = 1
 
@@ -389,4 +403,19 @@ LOGGING = {
 # override default message tags to match Patternfly class names
 MESSAGE_TAGS = {
     messages.ERROR: 'danger',
+}
+
+AUTHENTICATION_BACKENDS = (
+    'django_auth_ldap.backend.LDAPBackend',  # ldap认证
+    'django.contrib.auth.backends.ModelBackend',
+)
+AUTH_LDAP_SERVER_URI = "ldap://hz-dc01.cnexlabs.com:389"
+AUTH_LDAP_BIND_DN = 'cn=ldap lookup,ou=service accounts,ou=SanJose-StevensCreek,ou=Corporate,dc=cnexlabs,dc=com'
+AUTH_LDAP_BIND_PASSWORD = 'rC@NMi3ns3'
+AUTH_LDAP_USER_SEARCH = LDAPSearch("dc=cnexlabs,dc=com", ldap.SCOPE_SUBTREE, "(&(objectClass=person)(sAMAccountName=%(user)s))")
+# AUTH_LDAP_USER_ATTR_MAP = {"first_name": "givenName", "last_name": "sn", "username": "sn"}
+AUTH_LDAP_ALWAYS_UPDATE_USER = True
+AUTH_LDAP_CONNECTION_OPTIONS = {
+    ldap.OPT_DEBUG_LEVEL: 1,
+    ldap.OPT_REFERRALS: 0,
 }

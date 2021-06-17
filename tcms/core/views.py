@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 from django import http
 from django.template import loader
 from django.shortcuts import render
@@ -9,7 +10,7 @@ from django.views.decorators.csrf import requires_csrf_token
 
 from tcms.testplans.models import TestPlan
 from tcms.testruns.models import TestRun
-
+from tcms.management.models import Node
 
 @require_GET
 @login_required
@@ -25,7 +26,8 @@ def dashboard(request):
         num_runs=Count('run', distinct=True)
     )
     test_plans_disable_count = test_plans.filter(is_active=False).count()
-
+    nodes = Node.objects.all()
+    print(nodes)
     test_runs = TestRun.objects.filter(
         Q(manager=request.user) |
         Q(default_tester=request.user) |
@@ -41,9 +43,26 @@ def dashboard(request):
         'last_15_test_runs': test_runs[:15],
 
         'test_runs_count': test_runs.count(),
+        'nodes': nodes,
+        'nodes_count': nodes.count()
     }
     return render(request, 'dashboard.html', context_data)
 
+@require_GET
+@login_required
+def machine_monitor_system(request):
+    nodes = Node.objects.all()
+    print(nodes)
+    node_list = []
+    for node in nodes:
+        node_list.append(node.serialize())
+    print(node_list)
+    context_data = {
+        'nodes': nodes,
+        'node_list': json.dumps(node_list),
+        'nodes_count': nodes.count()
+    }
+    return render(request, 'machine_monitor.html', context_data)
 
 def navigation(request):
     """

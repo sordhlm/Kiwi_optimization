@@ -865,6 +865,15 @@ ul.data_content_title li{ display:inline-block; margin-left:3px;}
 .reportSummary01 li{float:left; list-style:none;}
 .reportSummary01 li span{padding:0 10px 0 3px; color:red;}
 .reportSummary01 li.tagTab span{color:#000000; font-weight:bold;}
+/***********************Report start***************************/
+#bandwidth_chart{margin-top:50px; height: 400px; width: 65%; position: absolute;}
+#qos_chart{margin-top:550px; height: 400px; width: 65%; position: absolute;}
+#QosTable{margin-top:50px; margin-left:66%; height: 400px; width: 30%; position: absolute;background:white;}
+#id_table_bg_container{position:fixed; width: 100%; height:120%;margin-top:-20%;background: #0003;z-index:inherit;display:none;}
+#id_case_table_container{width: 60%; height:100%;margin:20% 0 0 20%;}
+#id_case_table{width:100%;margin:0% 0 0 0%;}
+th, td { white-space: nowrap; }
+/***********************Report end***************************/
 
 /* caserun detail */
 .caserunDetail{}
@@ -972,4 +981,48 @@ ul.data_content_title li{ display:inline-block; margin-left:3px;}
     background: black;
     z-index: 5555;
     display: none;
+}
+td.details-control {
+    background: url('../images/details_close.png') no-repeat center center;
+    cursor: pointer;
+    background-size:25px;
+}
+tr.shown td.details-control {
+    background: url('../images/details_open.png') no-repeat center center;
+    background-size:25px;
+}
+
+tr.node-state-offline{
+    background: #e6e6e6;
+}
+
+tr.node-state-idle{
+    background: #defcff;
+}
+
+tr.node-state-running{
+    background: #e6ffe5;
+}
+
+strong.test-status-PASSED{
+    color: #00b90c;
+}
+
+strong.test-status-FAILED{
+    color: #ca0000;
+}
+
+strong.test-status-RUNNING{
+    color: #5098f5;
+}
+tr.group,
+tr.group:hover {
+    background-color: #3b6b7d !important;
+    color: white;
+}
+.cls_tag{
+    background-color: yellow;
+    font-weight:bold;
+    color: red;
+    width: 10%;
 }

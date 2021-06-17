@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+{% load extra_filters %}
+{% block title %}{% trans "Search test cases" %}{% endblock %}
+
+{% block contents %}
+{% block custom_stylesheet %}
+<link rel="stylesheet" type="text/css" href="{% static 'style/base.css' %}" media="screen" />
+
+<link rel="stylesheet" type="text/css" href="{% static 'style/jquery-google-nexus/css/normalize.css' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'style/jquery-google-nexus/css/demo.css' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'style/jquery-google-nexus/css/component.css' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'jstree/dist/themes/default/style.min.css' %}"/>
+{% endblock %}
+{% block custom_javascript %}
+<!-- JavaScript that is used in this page -->
+
+<!--<script src="{% static 'bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js' %}"></script>
+<script src="{% static 'bootstrap-select/dist/js/bootstrap-select.min.js' %}"></script>
+
+<script src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>-->
+<script src="{% static 'datatables.net/js/jquery.dataTables.min.js'"></script>
+<script src="{% static 'canvasjs/dist/canvasjs.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/tcms_actions.js' %}"></script>
+<script src="{% static 'js/jquery-google-nexus/js/classie.js' %}"></script>
+<script src="{% static 'js/jquery-google-nexus/js/gnmenu.js' %}"></script>
+<script src="{% static 'js/jsonrpc.js' %}"></script>
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/pagination.js' %}"></script>
+<script src="{% static 'jstree/dist/jstree.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/testcase_actions.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/performance_report_actions.js' %}"></script>
+
+
+<script type="text/javascript">
+    //var results = {{results | safe}};
+    var groups = {{groups | safe}};
+    var tree_data = {{tree_data | safe}};
+</script>
+{% endblock %}
+<!DOCTYPE html>
+<div class="loading_div" id="loading_div">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="loader">
+                        <div class="loading-1"></div>
+                        <div class="loading-2">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="menu_container">
+    <ul id="gn-menu" class="gn-menu-main">
+        <li class="gn-trigger">
+            <a class="gn-icon gn-icon-menu"><span>Menu</span></a>
+            <nav class="gn-menu-wrapper">
+                <div class="gn-scroller">
+                    <ul class="gn-menu">
+                        <li class="gn-search-item">
+                            <input placeholder="Search" type="search" class="gn-search">
+                            <a class="gn-icon gn-icon-search"><span>Search</span></a>
+                        </li>
+                        <div id="container">
+                            <div id="result_tree" class="jstree jstree-default jstree-0 jstree-focused">
+                            </div>
+                        </div>
+                        <!--<div id="result_tree" class="jstree jstree-default jstree-0 jstree-focused">
+                        </div>-->
+                        <!--
+                        {% spaceless %}
+                        {% for result in results %}
+                        <li class="gn-li gn-li-unselected gn-li-confirm-{{result.confirm}}" value="{{ result.index }}" title="{{ result.test_key }}">
+                            <a href="#" class="gn-icon gn-icon-article" class="tooltip-show" data-toggle="tooltip" title="{{result.project_name}} {{result.tester}} {{result.start_time}} confirm_{{result.confirm}}" style="float:left">{{ result.name}}</a>
+                            <a href="#" style="margin-left:450px; float:left; position:absolute">{{ result.start_time | slice:"10"}}</a>
+                            <a href="#" style="margin-left:560px; float:left; position:absolute">{{ result.environment.fw_version}}</a>
+                            <a href="#" style="margin-left:660px;">{{ result.environment.vendor_name}}</a>
+                        </li>
+                        {% endfor %}
+                        {% endspaceless %}
+                    -->
+                    </ul>
+                </div><!-- /gn-scroller -->
+            </nav>
+        </li>
+        {% if perms.management.delete_product %}
+        <li><a href="#" id="delete_btn"> Delete Select Data</a></li>
+        {% endif %}
+        <li><a href="#" id="confirm_btn">{{confirm}}</a></li>
+        <!--
+        <div class="form-group"  style="width: 98%">
+        <label class="col-md-1 col-lg-1" for="id_product">{% trans "Product" %}</label>
+        <div class="col-md-2 col-lg-2">
+            <select class="form-control selectpicker" multiple id="id_product">
+                <option value="">----------</option>
+                {% for option in product %}
+                    <option value="{{ option }}">{{ option }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <label class="col-md-1 col-lg-1">{% trans "Date" %}</label>
+        <input type='text' id='id_begin_date' style="float:left;margin-top:24px">
+        <label style="float:left;margin:0 10px 0 10px">---</label>
+        <input type='text' id='id_end_date' style="float:left;margin-top:24px">
+        <label class="col-md-1 col-lg-1" for="id_summary" style="float:left">Summary</label>
+        <input type='text' id='id_summary' style="float:left">
+        <button  id="perf_report_submit" class="btn btn-primary" style="right:3%;position:absolute">Search</button>-->
+    </div>
+    </ul>
+</div><!-- /container -->
+<div class="container-fluid container-cards-pf" id="id_perf_result"  style="display:none">
+    
+    <div class="btn-for-chart">
+        <span class="btn label label-success">Selector For Realtime Data</span>
+        <div class="btn-group" style="padding-left:10px;">
+            <!--<button  class="btn_chart btn-primary" value="sum_bw">Total Bandwidth</button>-->
+            <button  class="btn btn_chart btn-primary" value="write_bw">Write Bandwidth</button>
+            <button  class="btn btn_chart btn-default" value="read_bw">Read Bandwidth</button>
+            <!--<button  class="btn_chart btn-default" value="sum_iops">Total Iops</button>-->
+            <button  class="btn btn_chart btn-default" value="write_iops">Write Iops</button>
+            <button  class="btn btn_chart btn-default" value="read_iops">Read Iops</button>
+            <button  class="btn btn_chart btn-default" value="temperature">Temperature</button>
+        </div>
+    </div>
+    <div id="btn-for-latency" style="margin-top:10px; display:none">
+        <span class="label label-success">Selector For Data Table</span>
+        <div class="btn-group" style="padding-left:35px;">
+            <button  class="btn btn-danger toggle-vis" data-column="5">WR BW</button>
+            <button  class="btn btn-danger toggle-vis" data-column="6">WR Avg Lat</button>
+            <button  class="btn btn-default toggle-vis" data-column="7">WR Lat 99</button>
+            <button  class="btn btn-default toggle-vis" data-column="8">WR Lat 999</button>
+            <button  class="btn btn-danger toggle-vis"  data-column="9">WR Lat 9999</button>
+            <button  class="btn btn-default toggle-vis" data-column="10">WR Lat 99999</button>
+            <button  class="btn btn-default toggle-vis" data-column="11">WR Lat 999999</button>
+            <button  class="btn btn-default toggle-vis" data-column="12">WR Lat 9999999</button>
+            <button  class="btn btn-default toggle-vis" data-column="13">WR Lat 99999999</button>
+            <button  class="btn btn-default toggle-vis" data-column="14">WR Lat Max</button>
+        </div>
+
+        <div class="btn-group" style="padding-left:10px;">
+            <button  class="btn btn-danger toggle-vis" data-column="15">RD BW</button>
+            <button  class="btn btn-danger toggle-vis" data-column="16">RD Avg Lat</button>
+            <button  class="btn btn-default toggle-vis" data-column="17">RD Lat 99</button>
+            <button  class="btn btn-default toggle-vis" data-column="18">RD Lat 999</button>
+            <button  class="btn btn-danger toggle-vis"  data-column="19">RD Lat 9999</button>
+            <button  class="btn btn-default toggle-vis" data-column="20">RD Lat 99999</button>
+            <button  class="btn btn-default toggle-vis" data-column="21">RD Lat 999999</button>
+            <button  class="btn btn-default toggle-vis" data-column="22">RD Lat 9999999</button>
+            <button  class="btn btn-default toggle-vis" data-column="23">RD Lat 99999999</button>
+            <button  class="btn btn-default toggle-vis" data-column="24">RD Lat Max</button>
+        </div>
+
+    </div>
+    <div class="result-container" style="margin-top: 40px; width: 98%; background: white;">
+        <!-- Table HTML -->
+        <!--
+        <table class="table table-striped table-bordered table-hover" id="resultsTable" style="background: white;width:100%">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>{% trans "ID" %}</th>
+                    <th>{% trans "Summary" %}</th>
+                    <th>{% trans "Group" %}</th>
+                    <th>{% trans "Block Size" %}</th>
+                    <th>{% trans "Duration" %}</th>
+                    <th>{% trans "Date" %}</th>
+                    <th>{% trans "WR BW" %}</th>
+                    <th>{% trans "WR Latency" %}</th>
+                    <th>{% trans "WR Lat999" %}</th>
+                    <th>{% trans "WR Lat9999" %}</th>
+                    <th>{% trans "WR Lat99999" %}</th>
+                    <th>{% trans "WR Lat999999" %}</th>
+                    <th>{% trans "RD BW" %}</th>
+                    <th>{% trans "RD Latency" %}</th>
+                    <th>{% trans "RD Lat999" %}</th>
+                    <th>{% trans "RD Lat9999" %}</th>
+                    <th>{% trans "RD Lat99999" %}</th>
+                    <th>{% trans "RD Lat999999" %}</th>
+                </tr>
+            </thead>
+        </table>
+
+        {% include 'pagination.html' %}
+        -->
+        <table id="ParentTable" class="table table-striped table-bordered table-hover" style="background: white;width:100%">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>{% trans "Name" %}</th>
+                    <th>{% trans "Project" %}</th>
+                    <th>{% trans "Tester" %}</th>
+                    <th>{% trans "StartDate" %}</th>
+                    <th>{% trans "Env" %}</th>
+                    <th></th>
+                </tr>
+            </thead>
+        </table>
+        {% include 'pagination.html' %}
+        
+        <div id="id_chart_result" class="chart_container" style="display:none">
+            <div id="bandwidth_chart" class="progress_container"></div>
+            <table id="QosTable" class="table table-striped table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>{% trans "QOS" %}</th>
+                        <th>{% trans "Name" %}</th>
+                    </tr>
+                </thead>
+            </table>
+            <div id="qos_chart" class="progress_container" style="margin-top:500px; height: 400px; width: 25%; position: absolute;"></div>
+        </div>
+        
+
+    </div>
+</div><!-- /container -->
+
+
+{% endblock %}

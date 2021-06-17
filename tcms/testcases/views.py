@@ -969,10 +969,11 @@ def edit(request, case_id, template_name='case/edit.html'):
 
     if request.method == "POST":
         form = EditCaseForm(request.POST)
-        if request.POST.get('product'):
+        if request.POST.get('suite'):
+            suite = Suite.objects.get(pk=request.POST["suite"])
+            form.populate(product_id=suite.product_id ,suite_id=request.POST['suite'])
+        elif request.POST.get('product'):
             form.populate(product_id=request.POST['product'])
-        elif test_plan:
-            form.populate(product_id=test_plan.product_id)
         else:
             form.populate()
 

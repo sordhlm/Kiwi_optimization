@@ -8,27 +8,45 @@
 {% endblock %}
 {% block custom_javascript %}
 <script src="{% static 'chart.js/dist/Chart.min.js' %}"></script>
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/jsonrpc.js' %}"></script>
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="{% static 'datatables.net/js/jquery.dataTables.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/run_report_actions.js' %}"></script>
 <script type="text/javascript">
-    var com_cnt = {{ com_cnt | safe }}
+    var com_cnt = {{ com_cnt | safe }};
+    var product = {{ product.id | safe }};
 </script>
 {% endblock %}
 {% block contents %}
 <div id="content">
 	{% include 'report/nav.html' %}
-	
-	<div class="Detailform border-1" style="background:#f1f1f1; width:1200px; margin-left:10px; float:left">
+	<div class="table_bg_container" id="id_table_bg_container">
+		<div class="case_table_container" id="id_case_table_container">
+			<table class="list report" id="id_case_table" border="0" cellspacing="0" cellpadding="0" >
+				<thead>
+				<tr>
+					<th style="width:50px">ID</th>
+					<th style="width:100px">Summary</th>
+					<th style="width:50px">Author</th>
+					<th style="width:80px">Created at</th>
+				</tr>
+				</thead>
+			</table>
+		</div>
+	</div>
+	<div class="Detailform border-1" style="background:#f1f1f1; width:99%; margin-left:10px; float:left;">
 		{% if component %}
 		<div class="report">
 			<h2>Feature: {{ component }}</h2>
 			{% include "report/case_runs_status_subtotal.html" %}
 		</div>
 		{% endif %}
-		<table class="list report" border="0" cellspacing="0" cellpadding="0" width="100%" style="white-space:nowrap; ">
+		<table class="list report" border="0" cellspacing="0" cellpadding="0" style="width:70%; white-space:nowrap; float:left">
 			<tr>
-				<th style="width:150px">Feature</th>
+				<th style="width:200px">Feature</th>
 				<th style="width:50px">Case Runs</th>
-				<th style="width:200px">Case Runs Progress</th>
+				<th style="width:150px">Case Runs Progress</th>
 				<th style="width:80px">Failed Case Runs</th>
 				<th style="width:100px">
  				<div class="btnBlueCaserun" style="width:95px">
@@ -44,9 +62,10 @@
 				</th>
 			</tr>
 			{% for component in components %}
-			<tr class="feature_status">
+			<tr class="feature_status" style="white-space:normal">
 				<td class="variety_0">
-					<a href="?component_id={{ component.id }}">{{ component }}</a>
+					<!--<a href="?component_id={{ component.id }}">{{ component }}</a>-->
+					<a href="/cases/feature_view?product={{ product.id }}" class="feature_name" value="{{component.id}}">{{ component }}</a>
 				</td>
 				<td class="variety_1">
 					<span class="">{{ component.total_cases }}</span>
@@ -82,7 +101,7 @@
 			</tr>
 			{% endfor %}
 		</table>
+		<canvas id="feature_chart" style="width:30%;"> </canvas>
 	</div>
-	<canvas id="feature_chart" style="height:400px; width:400px;margin-left:1300px;position:absolute"> </canvas>
 </div><!--content over -->
 {% endblock %}

@@ -262,9 +262,9 @@ def create(values, **kwargs):
 
     if not (values.get('category') or values.get('summary')):
         raise ValueError()
-
+    cate = Category.objects.get(id = values.get('category'))
     form = NewCaseForm(values)
-    form.populate(values.get('product'))
+    form.populate(values.get('product'), cate.suite.id)
 
     if form.is_valid():
         # Create the case

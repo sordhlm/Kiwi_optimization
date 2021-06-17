@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-
+import inspect
+from django import forms
 from django.contrib import admin
-
+from django.forms.widgets import Select
+from tcms.issuetracker import types
 from tcms.management.models import Classification
 from tcms.management.models import Component, Version
 from tcms.management.models import Priority
@@ -13,12 +15,60 @@ class ClassificationAdmin(admin.ModelAdmin):
     search_fields = ('name', 'id')
     list_display = ('id', 'name', 'description')
 
+class IssueTrackerTypeSelectWidget(Select):
+    """
+    A select widget which displays the names of all classes
+    derived from IssueTrackerType. Skip IssueTrackerType
+    because it is doesn't provide implementations for most of its methods.
+    """
+    _choices = None
+
+    @property
+    def choices(self):
+        if self._choices is None:
+            self._choices = self._types_as_choices()
+        return self._choices
+
+    @choices.setter
+    def choices(self, _):
+        # ChoiceField.__init__ sets ``self.choices = choices``
+        # which would override ours.
+        pass
+
+    @staticmethod
+    def _types_as_choices():
+        trackers = []
+        for module_object in types.__dict__.values():
+            if inspect.isclass(module_object) and \
+               issubclass(module_object, types.IssueTrackerType) and \
+               module_object != types.IssueTrackerType:  # noqa: E721
+                trackers.append(module_object.__name__)
+        return (('', ''), ) + tuple(zip(trackers, trackers))
+
+
+class IssueTrackerTypeField(forms.ChoiceField):
+    """Special choice field which uses the widget above"""
+    widget = IssueTrackerTypeSelectWidget
+
+    def valid_value(self, value):
+        return True
+
+class ProductAdminForm(forms.ModelForm):
+    # select only tracker types for which we have available integrations
+    tracker_type = IssueTrackerTypeField(
+        label='Type',
+        help_text='This determines how Kiwi TCMS integrates with the IT system',
+    )
+
+    class Meta:
+        model = Product
+        fields = '__all__'
 
 class ProductsAdmin(admin.ModelAdmin):
     search_fields = ('name', 'id')
     list_display = ('id', 'name', 'classification', 'description')
     list_filter = ('id', 'name', 'classification')
-
+    form = ProductAdminForm
 
 class PriorityAdmin(admin.ModelAdmin):
     search_fields = ('value', 'id')

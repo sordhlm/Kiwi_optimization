@@ -123,7 +123,7 @@ $(document).ready(function() {
                         if (column.field == "id"){
                             var td = $('<td></td>');
                             //td.text(item[column.field]);
-                            var ref = $('<a href="{% url "testcases-get" '+ item[column.field] +' %}"></a>');
+                            var ref = $('<a href="/case/'+item[column.field]+'"></a>');
                             ref.text(item[column.field])
                             td.append(ref)
                             tr.append(td);

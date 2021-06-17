@@ -45,15 +45,24 @@ Nitrate.TestRuns.Details.on_load = function() {
       toggleAllCheckBoxes(this, 'id_node', 'node');
   });
   jQ('#form_updatefw').submit(function(){
-    var file = jQ("#bin_file").val()
-    //console.debug(file);
-    var node_list = serializeNodeFromInputList(jQ('#id_node')[0])
-    //console.debug(node_list)
+    var file = new FormData();
+    var file_info = $('#bin_file')[0].files[0];
+    file.append('bin_file', file_info);
+
+    var node_list = serializeNodeFromInputList(jQ('#id_node')[0]);
+    file.append('ip', node_list.ip);
+    file.append('did', node_list.id);
+    file.append('slot', node_list.slot);
+    // file.append('node_list', node_list);
+    ////console.debug(node_list)
     if (file != "") {
         jQ.ajax({
             type:"POST",
-            data: {"file":file,"iplist":node_list.ip,"idlist":node_list.id,"slotlist":node_list.slot},
-            url: "/run/update_fw/", 
+            data: file,
+            url: "/run/update_fw/",
+            cache: false,
+            processData: false,
+            contentType: false,
             success: function(result, statues, xml){
                 stat = result['result']
                 jQ('#id_node').parent().find('input[name="node"]:checked').each(function(index){
@@ -70,7 +79,7 @@ Nitrate.TestRuns.Details.on_load = function() {
                     else if(icon.hasClass('btn_failed')){
                         icon.removeClass('btn_failed');
                     }
-                    //console.debug(ip);
+                    console.debug(ip);
                     if (stat.hasOwnProperty(ip)){
                         //console.debug("has IP")
                         if(stat[ip].state == 1){
@@ -330,13 +339,13 @@ function updateRunStatus(object_pk, value, callback) {
     'type': 'POST',
     'data': {'object_pk': object_pk, 'status_id': value },
     'success': function (data, textStatus, jqXHR) {
-      if (value === "2"){
-        runTestCaseThenUpdate(object_pk);
-      }
-      else {
-        cancelRun(object_pk);
-      }
-      //callback();
+      //if (value === "2"){
+      //  runTestCaseThenUpdate(object_pk);
+      //}
+      //else {
+      //  cancelRun(object_pk);
+      //}
+      callback();
     },
     'error': function (jqXHR, textStatus, errorThrown) {
       json_failure(jqXHR);
@@ -633,7 +642,7 @@ function addCaseRunBug(run_id, title_container, container, case_id, case_run_id,
       if (!form_data.bug_id.length) {
         return;
       }
-
+      console.debug("check the issue ID");
       if (!validateIssueID(form_data.bug_validation_regexp, form_data.bug_id)) {
         return false;
       }

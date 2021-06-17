@@ -64,6 +64,7 @@ def new(request, template_name='plan/new.html'):
         form.populate(product_id=request.POST.get('product'))
 
         if form.is_valid():
+            print(form.cleaned_data)
             test_plan = TestPlan.objects.create(
                 product=form.cleaned_data['product'],
                 author=request.user,

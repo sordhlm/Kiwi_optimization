@@ -7,11 +7,19 @@ from tcms.core.models import TCMSActionModel
 
 class Node(TCMSActionModel):
     id = models.AutoField(db_column='node_id', primary_key=True)
-    name = models.CharField(max_length=10, blank=True)
-    ip = models.CharField(max_length=255, blank=True)
+    name = models.CharField(max_length=10)
+    ip = models.CharField(max_length=255)
     did = models.CharField(max_length=255, blank=True, null=True)
     slot = models.CharField(max_length=255, blank=True, null=True)
-    description = models.TextField(blank=True)
+    state = models.CharField(max_length=10, blank=True)
+    #project = models.CharField(max_length=255, blank=True, null=True)
+    product = models.ForeignKey('management.Product', related_name="node",  
+                                on_delete=models.SET_NULL, null=True)
+    fw = models.CharField(max_length=255, blank=True, null=True)
+    vendor = models.CharField(max_length=255, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    os = models.CharField(max_length=255, blank=True, null=True)
+    tag = models.CharField(max_length=30, blank=True, null=True)
 
     class Meta:
         verbose_name_plural = u'test node'
@@ -19,6 +27,33 @@ class Node(TCMSActionModel):
 
     def __str__(self):
         return self.name
+
+    def update(self, values):
+        #print("[Node Update]============")
+        #print(values)
+        if values.get('ip'):
+            self.ip = values['ip']
+        if values.get('system'):
+            self.os = values['system']
+        if values.get('did'):
+            self.did = values['did']
+        if values.get('slot'):
+            self.slot = values['slot']
+        if values.get('state'):
+            self.state = values['state']
+        #if values.get('project'):
+        #    self.project = values['project']
+        if values.get('fw'):
+            self.fw = values['fw']
+        if values.get('vendor'):
+            self.vendor = values['vendor']
+        if values.get('description'):
+        #if 'description' in values.keys():
+            self.description = values['description']
+        if 'tag' in values.keys():
+            self.tag = values['tag']
+        self.save()
+        return self
 
 class Classification(TCMSActionModel):
     id = models.AutoField(primary_key=True)
@@ -35,6 +70,12 @@ class Product(TCMSActionModel):
     name = models.CharField(unique=True, max_length=64)
     classification = models.ForeignKey(Classification, on_delete=models.CASCADE)
     description = models.TextField(blank=True)
+    tracker_type = models.CharField(
+        max_length=128,
+        verbose_name='Type',
+        help_text='This determines how Kiwi TCMS integrates with the IT system',
+        null=True
+    )
     bug_system_product = models.CharField(max_length=255, null=True)
 
     def __str__(self):
@@ -75,7 +116,7 @@ class Priority(TCMSActionModel):
 
 class Component(TCMSActionModel):
     id = models.AutoField(max_length=5, primary_key=True)
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=128)
     product = models.ForeignKey(Product, related_name='component', on_delete=models.CASCADE)
     initial_owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,

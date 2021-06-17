@@ -26,6 +26,7 @@ from tcms.report import urls as report_urls
 
 urlpatterns = [
     url(r'^$', core_views.dashboard, name='core-views-index'),
+    url(r'^mms$', core_views.machine_monitor_system, name='machine_monitor_system'),
     url(r'^xml-rpc/', RPCEntryPoint.as_view(protocol=XMLRPC_PROTOCOL)),
     url(r'^json-rpc/$', RPCEntryPoint.as_view(protocol=JSONRPC_PROTOCOL)),
     url(r'^navigation/', core_views.navigation, name='iframe-navigation'),

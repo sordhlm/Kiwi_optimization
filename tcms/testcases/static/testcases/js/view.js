@@ -23,7 +23,7 @@ $(document).ready(function() {
                 }
             },
             { data: "author" },
-            { data: "default_tester" },
+            
             { data: "is_automated" },
             { data: "case_status"},
             { data: "category"},
@@ -39,7 +39,7 @@ $(document).ready(function() {
 
     hookIntoPagination('#resultsTable', table);
     $('#id_add_category').click(function() {
-        var ref_url = '/admin/testcases/category/add/?parent_category='+select_node;
+        var ref_url = '/admin/testcases/category/add/?parent_category='+select_node+'&suite='+suite_id;
         console.debug(ref_url)
         //window.location.href = ref_url;
         window.open(ref_url)
@@ -74,7 +74,8 @@ $(document).ready(function() {
             var max_depth = 10;
             var default_id = 0;
             data.forEach(function(element) {
-                var node = {text:"",nodes:[],id:0,parent_id:0};
+                //var node = {text:"",nodes:[],id:0,parent_id:0};
+                var node = {text:"",children:[],id:0,parent_id:0};
                 node.text = element.name;
                 node.id = element.id;
                 node.parent_id = element.parent_category_id;
@@ -85,19 +86,31 @@ $(document).ready(function() {
                 //return (element.parent_id == default_id && element.id != default_id);
                 return (element.parent_id == null)
             });
-            //console.debug(treedata)
+            console.debug(treedata)
             addSubNode(treedata,node_list);
-            //console.debug(treedata)
-            tree = $('#tree').treeview({    
-                data: treedata, 
-                collapseIcon: "fa fa-angle-down",
-                expandIcon: "fa fa-angle-right",
-                nodeIcon: "fa fa-folder",
-                showCheckbox: false,
-                onNodeSelected: function(event, data){
-                    select_node = data.id;
-                    reloadTableAndPagainfo(table);
-                }
+            console.debug(treedata)
+            //tree = $('#tree').treeview({    
+            //    data: treedata, 
+            //    collapseIcon: "fa fa-angle-down",
+            //    expandIcon: "fa fa-angle-right",
+            //    nodeIcon: "fa fa-folder",
+            //    showCheckbox: false,
+            //    onNodeSelected: function(event, data){
+            //        select_node = data.id;
+            //        reloadTableAndPagainfo(table);
+            //    }
+            //});
+            $('#tree').jstree({
+              'core' : {
+                'data' : treedata
+              }
+            });
+            $('#tree').on("select_node.jstree", function (e, data) {
+              console.log("The selected nodes are:");
+              console.log(data.node.id);
+              select_node = data.node.id;
+              displayLoadingDiv(); 
+              reloadTableAndPagainfo(table);
             });
             
         }
@@ -116,8 +129,9 @@ $(document).ready(function() {
     });
 
     $('.bootstrap-switch').bootstrapSwitch();
-
+  
     $('.selectpicker').selectpicker();
+
 
 });
 function reloadTableAndPagainfo(table){
@@ -152,7 +166,9 @@ function addSubNode(treedata,tlist){
         if (Number(sub_list) == 0){
             return 1;
         }
-        item.nodes = sub_list;
-        return addSubNode(item.nodes,tlist);
+        //item.nodes = sub_list;
+        item.children = sub_list;
+        return addSubNode(item.children,tlist);
+        //return addSubNode(item.nodes,tlist);
     });
 }

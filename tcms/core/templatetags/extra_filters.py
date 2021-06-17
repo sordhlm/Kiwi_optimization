@@ -3,10 +3,13 @@
 """
 
 import markdown
-
+import re
 from django import template
-from django.utils.safestring import mark_safe
+from django.utils.safestring import mark_safe, SafeData
 from django.contrib.messages import constants as messages
+from django.utils.html import conditional_escape
+from django.template.defaultfilters import stringfilter
+from django.utils.text import normalize_newlines
 
 register = template.Library()
 
@@ -34,3 +37,23 @@ def message_icon(msg):
         messages.INFO: 'info',
     }
     return 'pficon-' + icons[msg.level]
+
+@stringfilter
+def spacify(value, autoescape=None):
+    if autoescape:
+        esc = conditional_escape
+    else:
+        esc = lambda x: x
+    return mark_safe(re.sub('\s', '&'+'nbsp;', esc(value)))
+spacify.needs_autoescape = True
+register.filter(spacify)
+
+@register.filter(name='spacify_new')
+@stringfilter
+def spacify(value, autoescape=None):
+    autoescape = autoescape and not isinstance(value, SafeData)
+    value = normalize_newlines(value)
+    if autoescape:
+        value = escape(value)
+    value = mark_safe(value.replace('  ', ' &nbsp;'))             
+    return mark_safe(value.replace('\n', '<br />'))
