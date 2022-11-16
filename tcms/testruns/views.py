@@ -394,11 +394,11 @@ def get(request, run_id, template_name='run/get.html'):
     for test_case_run in test_case_runs:
         test_cases.append(test_case_run.case_id)
         if test_case_run.node:
-            if settings.REST_API_RUN:
-                if ('RUNNING' in case_run_status_name[test_case_run.case_run_status_id]) or \
-                    ('PAUSED' in case_run_status_name[test_case_run.case_run_status_id]):
-                    print("case:%s, ip:%s"%(test_case_run.case_id,test_case_run.node.ip))
-                    update_runnig_test_status(test_case_run)
+            #if settings.REST_API_RUN:
+            #    if ('RUNNING' in case_run_status_name[test_case_run.case_run_status_id]) or \
+            #        ('PAUSED' in case_run_status_name[test_case_run.case_run_status_id]):
+            #        print("case:%s, ip:%s"%(test_case_run.case_id,test_case_run.node.ip))
+            #        update_runnig_test_status(test_case_run)
             if (test_case_run.node.ip is not "--default--"):
                 node_list.append(test_case_run.node)
 

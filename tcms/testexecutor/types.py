@@ -17,6 +17,7 @@ from production_rest_client.rest_client import RestClient
 from production_rest_client.api import Api
 
 STAT_MAP = {
+            -1 :'NONE',
             0 :'FAILED',
             1 :'PASSED',
             2 :'NOT_START',
@@ -68,7 +69,8 @@ class CnexExecutor(TestExecutorType):
         self.ip = ip
         self.rtc = RestClient(self.ip, time_out=timeout)
 
-    def _convert_result(self, rtc_result):
+    @staticmethod
+    def stat_trans(state):
         #{'id': 6, 'name': 'BLOCKED'}, 
         #{'id': 7, 'name': 'ERROR'}, 
         #{'id': 5, 'name': 'FAILED'}, 
@@ -78,18 +80,23 @@ class CnexExecutor(TestExecutorType):
         #{'id': 2, 'name': 'RUNNING'}, 
         #{'id': 8, 'name': 'WAIVED'}
         ret_map = {
-                    0:{'stat':STAT_MAP[0], 'kiwi_stat_id':5},
-                    1:{'stat':STAT_MAP[1], 'kiwi_stat_id':4},
-                    2:{'stat':STAT_MAP[2], 'kiwi_stat_id':3},
-                    3:{'stat':STAT_MAP[3], 'kiwi_stat_id':2},
-                    4:{'stat':STAT_MAP[4], 'kiwi_stat_id':7, },
-                    11:{'stat':STAT_MAP[11], 'kiwi_stat_id':7},
-                    12:{'stat':STAT_MAP[12], 'kiwi_stat_id':7},
-                    13:{'stat':STAT_MAP[13], 'kiwi_stat_id':3},
-                    14:{'stat':STAT_MAP[14], 'kiwi_stat_id':3},
-                    15:{'stat':STAT_MAP[15], 'kiwi_stat_id':7},
-                  }
-        ret = ret_map[rtc_result['state']]
+                    -1: 1,
+                    0 : 5,
+                    1 : 4,
+                    2 : 3,
+                    3 : 2,
+                    4 : 7,
+                    11: 7,
+                    12: 7,
+                    13: 7,
+                    14: 7,
+                    15: 7,
+                  }        
+        return ret_map[state]
+
+    def _convert_result(self, rtc_result):
+        rtc_stat = rtc_result['state']
+        ret = {'stat': STAT_MAP[rtc_stat], 'kiwi_stat_id':self.stat_trans(rtc_stat)}
         ret.update({'msg':rtc_result['msg']+' state: '+ret['stat']})
         return ret
 

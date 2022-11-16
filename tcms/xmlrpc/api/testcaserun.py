@@ -12,6 +12,7 @@ from tcms.xmlrpc.serializer import XMLRPCSerializer
 from tcms.testruns.models import TestCaseRun
 from tcms.xmlrpc.decorators import permissions_required
 from tcms.management.models import Build
+from tcms.testexecutor.types import CnexExecutor
 
 __all__ = (
     'create',
@@ -237,3 +238,14 @@ def get_logs(case_run_id):
     links = LinkReference.objects.filter(test_case_run=case_run_id)
     serialier = XMLRPCSerializer(links)
     return serialier.serialize_queryset()
+
+@permissions_required('testruns.change_testcaserun')
+@rpc_method(name='TestCaseRun.update_status')
+def update_status(case_run_id, result):
+    tcr = TestCaseRun.objects.get(pk=case_run_id)
+    if 'state' in result:
+        kiwistat = CnexExecutor.stat_trans(result['state'])
+        result.update({'kiwi_stat_id': kiwi_stat})
+        tcr.markResult(result)
+        return 0
+    return 1

@@ -43,6 +43,8 @@ Kiwi TCMS is a test plan, test run and test case management system, written in
 Python and Django. It features Bugzilla and JIRA integration, fast test plan 
 and runs search, powerful access control for each plan, run and case, and XML-RPC APIs.
 
+Kiwi_dev is based on Kiwi, and add a lot features for QA use
+
 
 Brief history
 -------------

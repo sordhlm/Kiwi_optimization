@@ -45,6 +45,7 @@ $(document).ready(function() {
     console.debug(tree_data)
     $('#result_tree').jstree({
         'core' : {
+          'chec_callback': true,
           'data' : tree_data
         },
         "types" : {
@@ -74,16 +75,31 @@ $(document).ready(function() {
             "three_state": true,//父子级别级联选择
             "tie_selection": false
         },
-    });
-    //$('#result_tree').on("click.jstree", function (e, data) {
-    $('#result_tree').on("check_node.jstree", function (e, data) {
-        var ref = $('#result_tree').jstree(true);
+    }).on("ready.jstree",function(e,data){    
+        //console.debug("load tree")
+
+        $('#result_tree').jstree("open_all");  
+        var ref = $('#result_tree').jstree(true);  
+        //console.debug("uncheck all node")
+        $('#result_tree').jstree("uncheck_all");   
+        $('#result_tree').find("li").each(function(){   
+            //console.debug(jQuery(this).attr("id"))
+            console.debug("load group according to URL")
+            console.debug(groups)
+            for(var i=0;i<groups.length;i++){  
+                //console.debug(jQuery(this).attr("id"))
+                //console.debug("test key in url: ", groups[i].test_key)
+                if(jQuery(this).attr("id") == groups[i].test_key){ 
+                    console.debug("find the test key")
+                    ref.check_node($(this));  
+                }  
+            }
+        });
         var nodes = ref.get_checked(false);  //使用get_checked方法
-        console.log("click jstree", nodes);
+        console.log("load jstree", nodes);
         query_group(nodes, 0);
-        console.debug("chart data after reload new group: ",chart_data)
-    });
-    $('#result_tree').on("uncheck_node.jstree", function (e, data) {
+        jQuery('#result_tree').jstree("close_all");   
+    }).on("activate_node.jstree", function (e, data) {
         var ref = $('#result_tree').jstree(true);
         var nodes = ref.get_checked(false);  //使用get_checked方法
         console.log("click jstree", nodes);
@@ -99,7 +115,7 @@ $(document).ready(function() {
         "temperate": 2,
     }
     //console.debug(groups)
-    gen_parent_table(groups)
+    //gen_parent_table(groups)
     Object.defineProperties(chart_obj, {
         list:{
             configurable: true,

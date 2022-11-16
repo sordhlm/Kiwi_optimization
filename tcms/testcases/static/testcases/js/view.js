@@ -10,7 +10,7 @@ $(document).ready(function() {
                 if (select_node != 0){
                     params['category'] = select_node;
                 }
-                //console.debug($('#id_product').val())
+                console.debug($('#id_product').val())
                 dataTableJsonRPC('TestCase.filter', params, callback);
             }            
         },
@@ -53,18 +53,26 @@ $(document).ready(function() {
     $('#id_delte_category').click(function() {
         window.location.href = '/admin/testcases/category/'+select_node+'/delete';
     });
-    $('#id_product').change(function() {
-        var updateSuite = function(data) {
+    var updateSuite = function(data) {
             updateSelectWithPicker(data, '#id_suite', 'id', 'name');
-        }
+    }
 //
+    $('#id_product').change(function() {
         product_id = $(this).val();
+        console.debug(product_id)
         if (product_id) {
             jsonRPC('Suite.filter', {product: product_id}, updateSuite);
         } else {
             updateSuite([]);
         }
     });
+    product_id = $('#id_product').val();
+    console.debug(product_id)
+    if (product_id) {
+        jsonRPC('Suite.filter', {product: product_id}, updateSuite);
+    } else {
+        updateSuite([]);
+    }
     $('#id_suite').change(function() {
         displayLoadingDiv(); 
         select_node = 0;
@@ -105,13 +113,17 @@ $(document).ready(function() {
                 'data' : treedata
               }
             });
+            $('#tree').jstree("refresh")
+
             $('#tree').on("select_node.jstree", function (e, data) {
               console.log("The selected nodes are:");
               console.log(data.node.id);
               select_node = data.node.id;
               displayLoadingDiv(); 
               reloadTableAndPagainfo(table);
+              hiddenLoadingDiv();
             });
+            hiddenLoadingDiv();
             
         }
 
@@ -138,8 +150,9 @@ function reloadTableAndPagainfo(table){
     var updatePage = function() {
         var info = table.page.info();
         $('.total-pages').html(info.pages);
-        hiddenLoadingDiv();
+        //hiddenLoadingDiv();
     }
+    console.debug("reload table")
     table.ajax.reload(updatePage);  
     
 }

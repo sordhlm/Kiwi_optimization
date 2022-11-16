@@ -374,15 +374,17 @@ class TestCase(TCMSActionModel):
 
         if query.get('product'):
             queryset = queryset.filter(category__suite__product=query['product'])
-            if query.get('category'):
-                clist = []
-                cate = Category.objects.filter(suite__product=query['product'],name=query['category'].name)[0]
-                #print(cate)
-                findAllSubCategory(cate.pk, clist)
-                id_list = [cate['id'] for cate in clist]
-                id_list.append(cate.pk)
-                #print(id_list)
-                queryset = queryset.filter(category_id__in=id_list)
+            if query.get('suite'):
+                queryset = queryset.filter(category__suite_=query['suite'])
+                if query.get('category'):
+                    clist = []
+                    cate = Category.objects.filter(suite=query['suite'],name=query['category'].name)[0]
+                    #print(cate)
+                    findAllSubCategory(cate.pk, clist)
+                    id_list = [cate['id'] for cate in clist]
+                    id_list.append(cate.pk)
+                    #print(id_list)
+                    queryset = queryset.filter(category_id__in=id_list)
 
         if query.get('component'):
             queryset = queryset.filter(component=query['component'])
