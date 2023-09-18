@@ -499,17 +499,19 @@ $(document).ready(function() {
                     },
                     { data: 'name' },
                     { data: 'project_name'},
-                    { data: 'tester'},
+                    { data: 'dut.sn'},
+                    { data: 'dut.fw_version'},
+                    { data: 'dut.cap'},
                     { data: 'start_time'},
                     { data: 'environment.ip'},      
-                    {
-                        data: null,
-                        className: 'delete_col',
-                        render: function (data, type, full, meta) {
-                            //return '<a href="/case/'+ data.case_id + '/" target="_parent">' + escapeHTML(data.summary) + '</a>';
-                            return '<a class="pficon pficon pficon-error-circle-o"></a>';
-                        }
-                    },
+                    //{
+                    //    data: null,
+                    //    className: 'delete_col',
+                    //    render: function (data, type, full, meta) {
+                    //        //return '<a href="/case/'+ data.case_id + '/" target="_parent">' + escapeHTML(data.summary) + '</a>';
+                    //        return '<a class="pficon pficon pficon-error-circle-o"></a>';
+                    //    }
+                    //},
                 ],
                 select: {
                     toggleable: false
